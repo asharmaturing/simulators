@@ -11,10 +11,18 @@
         theme: {
           extend: {
             colors: {
-              slate: {
-                850: '#1e293b',
-                900: '#0f172a',
+              // Blueprint / Paper Theme
+              paper: {
+                50: '#fbf9f1', // Lightest Cream
+                100: '#f8f4e8', // Standard Paper
+                200: '#ece6d0', // Darker Paper/Grid
+                900: '#2c2820', // Ink
+              },
+              blueprint: {
+                800: '#1e293b',
+                900: '#0f172a', // Deep Navy
                 950: '#020617',
+                accent: '#22d3ee', // Cyan Glow
               },
               cyan: {
                 450: '#22d3ee',
@@ -24,23 +32,36 @@
               sans: ['Inter', 'sans-serif'],
               mono: ['JetBrains Mono', 'monospace'],
             },
+            animation: {
+              'flow': 'flow 1s linear infinite',
+              'smoke': 'smoke 2s ease-out infinite',
+            },
+            keyframes: {
+              flow: {
+                'to': { strokeDashoffset: '-20' },
+              },
+              smoke: {
+                '0%': { transform: 'translateY(0) scale(0.5)', opacity: '0' },
+                '20%': { opacity: '1' },
+                '100%': { transform: 'translateY(-20px) scale(1.5)', opacity: '0' },
+              }
+            }
           },
         },
       }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
       body {
-        /* Default to dark mode colors to match initial load, JS will toggle */
-        background-color: #0f172a;
+        background-color: #0f172a; /* Default Dark Blueprint */
         color: #e2e8f0;
         font-family: 'Inter', sans-serif;
         transition: background-color 0.3s, color 0.3s;
       }
-      /* Light mode overrides when dark class is missing from html */
+      /* Paper Mode (Light) */
       html:not(.dark) body {
-        background-color: #f8fafc;
-        color: #0f172a;
+        background-color: #f8f4e8;
+        color: #1e293b;
       }
       .scrollbar-hide::-webkit-scrollbar {
           display: none;
@@ -48,6 +69,12 @@
       .scrollbar-hide {
           -ms-overflow-style: none;
           scrollbar-width: none;
+      }
+      
+      /* Engineering Grid Pattern */
+      .bg-grid-pattern {
+        background-image: linear-gradient(to right, rgba(128, 128, 128, 0.1) 1px, transparent 1px),
+                          linear-gradient(to bottom, rgba(128, 128, 128, 0.1) 1px, transparent 1px);
       }
     </style>
   <script type="importmap">

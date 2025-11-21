@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useContext, createContext } from 'react';
 import { HashRouter, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
 import { CircuitData, SimulationResult } from './types';
@@ -14,7 +13,8 @@ import {
   LayoutDashboard, Cpu, BarChart3, Menu, Sparkles, Play, Square, RotateCcw,
   Sun, Moon, Users, Plus, Search, LogOut, BookOpen, GraduationCap,
   ChevronRight, ChevronDown, X, PanelLeftClose, PanelLeftOpen,
-  Zap, Battery, Circle, ToggleLeft, Box, Component, Triangle, ArrowRightLeft, Repeat
+  Zap, Battery, Circle, ToggleLeft, Box, Component, Triangle, ArrowRightLeft, Repeat,
+  PenLine, Save
 } from 'lucide-react';
 
 // --- Theme Context ---
@@ -22,11 +22,12 @@ type Theme = 'dark' | 'light';
 const ThemeContext = createContext<{ theme: Theme; toggleTheme: () => void }>({ theme: 'dark', toggleTheme: () => {} });
 export const useTheme = () => useContext(ThemeContext);
 
-// --- Standard Schematic Icons (Consistent with Visualizer) ---
+// --- Standard Schematic Icons (Blueprint Style) ---
+// Replicating the technical drawing aesthetic requested
 const SchematicIcon = ({ type, className }: { type: string, className?: string }) => {
     const props = {
         width: 24, height: 24, viewBox: "0 0 24 24",
-        fill: "none", stroke: "currentColor", strokeWidth: 2,
+        fill: "none", stroke: "currentColor", strokeWidth: 1.5,
         strokeLinecap: "round" as "round", strokeLinejoin: "round" as "round",
         className: className
     };
@@ -37,16 +38,19 @@ const SchematicIcon = ({ type, className }: { type: string, className?: string }
         case 'ground':
             return <svg {...props}><line x1="12" y1="2" x2="12" y2="12" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="7" y1="16" x2="17" y2="16" /><line x1="10" y1="20" x2="14" y2="20" /></svg>;
         case 'resistor':
-            return <svg {...props}><path d="M2 12 H6 L8 7 L12 17 L16 7 L18 12 H22" /></svg>;
+             // Sharp ANSI Zigzag
+            return <svg {...props}><path d="M2 12 H6 L8 6 L12 18 L16 6 L18 12 H22" /></svg>;
         case 'capacitor':
-            return <svg {...props}><line x1="2" y1="12" x2="9" y2="12" /><line x1="15" y1="12" x2="22" y2="12" /><line x1="9" y1="5" x2="9" y2="19" /><line x1="15" y1="5" x2="15" y2="19" /></svg>;
+            return <svg {...props}><line x1="2" y1="12" x2="10" y2="12" /><line x1="14" y1="12" x2="22" y2="12" /><line x1="10" y1="6" x2="10" y2="18" /><line x1="14" y1="6" x2="14" y2="18" /></svg>;
+        case 'inductor':
+             return <svg {...props}><path d="M2 12 H5 C 5 12, 5 5, 9 5 C 13 5, 13 12, 13 12 C 13 12, 13 5, 17 5 C 21 5, 21 12, 21 12 H22" /></svg>;
         case 'led':
-            return <svg {...props}><line x1="2" y1="12" x2="7" y2="12" /><line x1="17" y1="12" x2="22" y2="12" /><path d="M7 7 L17 12 L7 17 V7 Z" fill="currentColor" fillOpacity="0.1" /><line x1="17" y1="7" x2="17" y2="17" /><path d="M15 5 L18 2" /><path d="M18 2 L16 2" /><path d="M18 2 L18 4" /><path d="M18 8 L21 5" /></svg>;
+            return <svg {...props}><line x1="2" y1="12" x2="7" y2="12" /><line x1="17" y1="12" x2="22" y2="12" /><path d="M7 7 L17 12 L7 17 V7 Z" /><line x1="17" y1="7" x2="17" y2="17" /><path d="M16 5 L19 2" /><path d="M19 2 L17 2" /><path d="M19 2 L19 4" /></svg>;
         case 'switch':
-            return <svg {...props}><circle cx="3" cy="12" r="2" /><circle cx="21" cy="12" r="2" /><line x1="3" y1="12" x2="18" y2="4" /></svg>;
+            return <svg {...props}><circle cx="3" cy="12" r="2" /><circle cx="21" cy="12" r="2" /><line x1="5" y1="12" x2="17" y2="6" /></svg>;
         case 'transistor':
         case 'transistor_npn':
-            return <svg {...props}><circle cx="12" cy="12" r="10" strokeWidth={1.5} /><line x1="2" y1="12" x2="8" y2="12" /><line x1="8" y1="6" x2="8" y2="18" strokeWidth={2.5} /><line x1="8" y1="10" x2="16" y2="4" /><line x1="8" y1="14" x2="16" y2="20" /><path d="M16 20 L13 19.5" /><path d="M16 20 L14 17.5" /></svg>;
+            return <svg {...props}><circle cx="12" cy="12" r="10" strokeWidth={1} /><line x1="2" y1="12" x2="8" y2="12" /><line x1="8" y1="6" x2="8" y2="18" strokeWidth={2} /><line x1="8" y1="10" x2="16" y2="4" /><line x1="8" y1="14" x2="16" y2="20" /><path d="M16 20 L13 19.5" /><path d="M16 20 L14 17.5" /></svg>;
         case 'gate_and':
             return <svg {...props}><path d="M4 5 H 10 C 16 5, 18 8, 18 12 C 18 16, 16 19, 10 19 H 4 V 5 Z" /><line x1="2" y1="8" x2="4" y2="8" /><line x1="2" y1="16" x2="4" y2="16" /><line x1="18" y1="12" x2="22" y2="12" /></svg>;
         case 'gate_or':
@@ -119,28 +123,28 @@ const Sidebar = ({ isOpen, onClose, onOpenPresets, onOpenGuide }: { isOpen: bool
             <div className="bg-cyan-600 p-1.5 rounded-lg">
                 <Cpu className="text-white" size={20} />
             </div>
-            <span className="text-lg font-bold text-slate-900 dark:text-white">CircuitMind</span>
+            <span className="text-lg font-bold text-slate-900 dark:text-white font-mono tracking-tight">CircuitMind</span>
           </div>
           <button onClick={onClose} className="md:hidden text-slate-500"><X size={20} /></button>
         </div>
         
         <nav className="flex-1 p-4 overflow-y-auto space-y-6">
           <div>
-            <p className="px-4 text-xs font-bold text-slate-400 mb-2 uppercase">Menu</p>
+            <p className="px-4 text-xs font-bold text-slate-400 mb-2 uppercase tracking-widest">Menu</p>
             <Link to="/" className={linkClass(isActive('/'))} onClick={onClose}><LayoutDashboard size={18} /> Dashboard</Link>
             <Link to="/editor" className={linkClass(isActive('/editor'))} onClick={onClose}><Zap size={18} /> Editor</Link>
             <Link to="/analytics" className={linkClass(isActive('/analytics'))} onClick={onClose}><BarChart3 size={18} /> Analytics</Link>
           </div>
 
           <div>
-            <p className="px-4 text-xs font-bold text-slate-400 mb-2 uppercase">Learn</p>
+            <p className="px-4 text-xs font-bold text-slate-400 mb-2 uppercase tracking-widest">Learn</p>
             <button onClick={() => { onOpenPresets(); onClose(); }} className={linkClass(false)}><BookOpen size={18} /> Library</button>
             <button onClick={() => { onOpenGuide(); onClose(); }} className={linkClass(false)}><GraduationCap size={18} /> Guide</button>
           </div>
         </nav>
 
         <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/30">
-           <button onClick={toggleTheme} className="w-full flex items-center gap-2 px-4 py-2 mb-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-sm">
+           <button onClick={toggleTheme} className="w-full flex items-center gap-2 px-4 py-2 mb-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-sm font-medium">
               {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
               {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
            </button>
@@ -166,6 +170,8 @@ const Editor = ({ data, onUpdate, onOpenGuide }: { data: CircuitData, onUpdate: 
   const [isPaletteOpen, setIsPaletteOpen] = useState(true); // Default open on desktop
   const [searchQuery, setSearchQuery] = useState('');
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const [projectName, setProjectName] = useState('New Project');
+  const [isEditingName, setIsEditingName] = useState(false);
   
   // Panels
   const [showAi, setShowAi] = useState(false);
@@ -196,12 +202,12 @@ const Editor = ({ data, onUpdate, onOpenGuide }: { data: CircuitData, onUpdate: 
     <div className="flex h-full relative overflow-hidden">
        {/* Component Palette (Responsive) */}
        <div className={`absolute md:relative z-30 h-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-300 shadow-xl md:shadow-none flex flex-col ${isPaletteOpen ? 'translate-x-0 w-64' : '-translate-x-full md:w-0 md:hidden'}`}>
-          <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
-              <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2"><Box size={18} /> Components</h3>
+          <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900">
+              <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 font-mono"><Box size={18} /> PARTS</h3>
               <button onClick={() => setIsPaletteOpen(false)} className="md:hidden text-slate-500"><X size={18}/></button>
           </div>
           
-          <div className="p-2">
+          <div className="p-2 bg-slate-50 dark:bg-slate-900">
              <div className="relative">
                 <Search className="absolute left-3 top-2.5 text-slate-400" size={14} />
                 <input 
@@ -209,15 +215,15 @@ const Editor = ({ data, onUpdate, onOpenGuide }: { data: CircuitData, onUpdate: 
                     placeholder="Search..." 
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
-                    className="w-full bg-slate-100 dark:bg-slate-800 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 text-slate-900 dark:text-white"
+                    className="w-full bg-white dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 text-slate-900 dark:text-white placeholder-slate-400"
                 />
              </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-2 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto p-2 custom-scrollbar bg-slate-50 dark:bg-slate-900">
              {filteredGroups.map(group => (
                  <div key={group.title} className="mb-2">
-                     <button onClick={() => toggleGroup(group.title)} className="w-full flex items-center justify-between px-2 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider hover:bg-slate-100 dark:hover:bg-slate-800 rounded">
+                     <button onClick={() => toggleGroup(group.title)} className="w-full flex items-center justify-between px-2 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider hover:bg-slate-200 dark:hover:bg-slate-800 rounded">
                          {group.title}
                          {collapsedGroups[group.title] ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
                      </button>
@@ -228,12 +234,12 @@ const Editor = ({ data, onUpdate, onOpenGuide }: { data: CircuitData, onUpdate: 
                                     key={item.type} 
                                     draggable 
                                     onDragStart={(e) => e.dataTransfer.setData('componentType', item.type)}
-                                    className="flex flex-col items-center gap-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-cyan-400 hover:shadow-md transition-all cursor-grab active:cursor-grabbing group"
+                                    className="flex flex-col items-center gap-2 p-3 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-cyan-500 hover:ring-1 hover:ring-cyan-500/20 transition-all cursor-grab active:cursor-grabbing group"
                                  >
-                                     <div className="text-slate-600 dark:text-slate-400 group-hover:text-cyan-500">
+                                     <div className="text-slate-700 dark:text-slate-300 group-hover:text-cyan-600 dark:group-hover:text-cyan-400">
                                          <SchematicIcon type={item.type} />
                                      </div>
-                                     <span className="text-[10px] font-medium text-center text-slate-700 dark:text-slate-300">{item.label}</span>
+                                     <span className="text-[10px] font-medium text-center text-slate-600 dark:text-slate-400 font-mono">{item.label}</span>
                                  </div>
                              ))}
                          </div>
@@ -246,29 +252,65 @@ const Editor = ({ data, onUpdate, onOpenGuide }: { data: CircuitData, onUpdate: 
        {/* Main Workspace */}
        <div className="flex-1 flex flex-col relative min-w-0">
           {/* Toolbar */}
-          <div className="h-14 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 shadow-sm z-20">
-              <div className="flex items-center gap-2">
-                  <button onClick={() => setIsPaletteOpen(!isPaletteOpen)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500">
+          <div className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 shadow-sm z-20 relative">
+              <div className="flex items-center gap-4">
+                  <button onClick={() => setIsPaletteOpen(!isPaletteOpen)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md text-slate-500">
                       {isPaletteOpen ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />}
                   </button>
-                  <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-2 hidden md:block"></div>
-                  <h2 className="font-bold text-slate-800 dark:text-white hidden md:block">New Project</h2>
+                  
+                  {/* Editable Project Name */}
+                  <div className="flex flex-col justify-center">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Project</span>
+                    <div className="flex items-center gap-2 group">
+                        {isEditingName ? (
+                            <input 
+                                type="text" 
+                                value={projectName} 
+                                onChange={(e) => setProjectName(e.target.value)}
+                                onBlur={() => setIsEditingName(false)}
+                                onKeyDown={(e) => e.key === 'Enter' && setIsEditingName(false)}
+                                autoFocus
+                                className="bg-slate-100 dark:bg-slate-800 border border-cyan-500 rounded px-2 py-0.5 text-sm font-bold text-slate-900 dark:text-white focus:outline-none min-w-[150px] font-mono"
+                            />
+                        ) : (
+                            <h2 
+                                className="font-bold text-slate-800 dark:text-white flex items-center gap-2 cursor-pointer hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors font-mono text-lg"
+                                onClick={() => setIsEditingName(true)}
+                            >
+                                {projectName}
+                                <PenLine size={12} className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400" />
+                            </h2>
+                        )}
+                    </div>
+                  </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => setIsSimulating(!isSimulating)}
-                    className={`flex items-center gap-2 px-4 py-1.5 rounded-lg font-bold text-sm transition-all shadow-sm ${isSimulating ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
-                  >
-                      {isSimulating ? <Square size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
-                      <span className="hidden md:inline">{isSimulating ? 'Stop' : 'Simulate'}</span>
-                  </button>
-                  <button onClick={() => {setIsSimulating(false); onUpdate({nodes: [], connections: []})}} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500" title="Clear"><RotateCcw size={18}/></button>
+              <div className="flex items-center gap-3">
+                  {/* Big Play Button */}
+                  <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                    <button 
+                        onClick={() => setIsSimulating(true)}
+                        className={`flex items-center gap-2 px-6 py-2 rounded-md font-bold text-sm transition-all ${isSimulating ? 'bg-slate-200 dark:bg-slate-700 text-slate-400 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-500 shadow-lg shadow-green-900/20'}`}
+                        disabled={isSimulating}
+                    >
+                        <Play size={18} fill="currentColor" />
+                        RUN
+                    </button>
+                    <button 
+                        onClick={() => setIsSimulating(false)}
+                        className={`flex items-center justify-center w-10 h-9 rounded-md ml-1 transition-all ${!isSimulating ? 'text-slate-300 cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-500 shadow-lg shadow-red-900/20'}`}
+                        disabled={!isSimulating}
+                    >
+                        <Square size={16} fill="currentColor" />
+                    </button>
+                  </div>
                   
-                  <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-2"></div>
+                  <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 mx-2"></div>
                   
-                  <button onClick={() => setShowAi(!showAi)} className={`p-2 rounded-lg transition-colors ${showAi ? 'bg-cyan-100 text-cyan-600' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}><Sparkles size={18}/></button>
-                  <button onClick={() => setShowCollab(!showCollab)} className={`p-2 rounded-lg transition-colors ${showCollab ? 'bg-purple-100 text-purple-600' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}><Users size={18}/></button>
+                  <button onClick={() => {setIsSimulating(false); onUpdate({nodes: [], connections: []})}} className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md text-slate-500 transition-colors" title="Reset Board"><RotateCcw size={18}/></button>
+                  <button onClick={() => setShowAi(!showAi)} className={`p-2.5 rounded-md transition-colors ${showAi ? 'bg-cyan-100 text-cyan-600' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`} title="AI Assistant"><Sparkles size={18}/></button>
+                  <button onClick={() => setShowCollab(!showCollab)} className={`p-2.5 rounded-md transition-colors ${showCollab ? 'bg-purple-100 text-purple-600' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`} title="Collaborators"><Users size={18}/></button>
+                  <button className="p-2.5 rounded-md text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hidden md:block" title="Save Project"><Save size={18}/></button>
               </div>
           </div>
 
@@ -333,7 +375,7 @@ const App = () => {
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme: () => setTheme(t => t === 'dark' ? 'light' : 'dark') }}>
         <HashRouter>
-            <div className="flex h-screen w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white overflow-hidden font-sans">
+            <div className="flex h-screen w-full bg-paper-100 dark:bg-slate-950 text-slate-900 dark:text-white overflow-hidden font-sans">
                 <Sidebar 
                     isOpen={isSidebarOpen} 
                     onClose={() => setIsSidebarOpen(false)}
@@ -347,7 +389,7 @@ const App = () => {
                         <button onClick={() => setIsSidebarOpen(true)} className="text-slate-600 dark:text-slate-300">
                             <Menu size={24} />
                         </button>
-                        <span className="font-bold">CircuitMind</span>
+                        <span className="font-bold font-mono">CircuitMind</span>
                         <div className="w-6"></div> {/* Spacer */}
                     </div>
 
