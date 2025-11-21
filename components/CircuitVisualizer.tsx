@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { CircuitData, CircuitNode, CircuitConnection } from '../types';
-import { Battery, Zap, Box, Component, Cpu, Triangle, Circle, ToggleLeft, ToggleRight, Trash2, MousePointer2, Move } from 'lucide-react';
+import { CircuitData, CircuitNode, CircuitConnection, Collaborator } from '../types';
+import { Battery, Zap, Box, Component, Cpu, Triangle, Circle, ToggleLeft, ToggleRight, Trash2, MousePointer2, Move, Activity } from 'lucide-react';
 
 interface Props {
   data: CircuitData;
@@ -9,11 +9,21 @@ interface Props {
   poweredNodes: Set<string>;
   onUpdate: (data: CircuitData) => void;
   theme?: 'dark' | 'light';
+  collaborators?: Map<string, Collaborator>;
+  onCursorMove?: (x: number, y: number) => void;
 }
 
 const GRID_SIZE = 20;
 
-const CircuitVisualizer: React.FC<Props> = ({ data, isSimulating, poweredNodes, onUpdate, theme = 'dark' }) => {
+const CircuitVisualizer: React.FC<Props> = ({ 
+    data, 
+    isSimulating, 
+    poweredNodes, 
+    onUpdate, 
+    theme = 'dark',
+    collaborators,
+    onCursorMove
+}) => {
   // View State
   const [view, setView] = useState({ x: 0, y: 0, zoom: 1 });
   const [isPanning, setIsPanning] = useState(false);
@@ -75,6 +85,11 @@ const CircuitVisualizer: React.FC<Props> = ({ data, isSimulating, poweredNodes, 
     const worldPos = toWorld(e.clientX, e.clientY);
     setMousePos(worldPos);
 
+    // Emit cursor position to collaborators (throttling handled by parent or assumed low freq)
+    if (onCursorMove) {
+        onCursorMove(worldPos.x, worldPos.y);
+    }
+
     // Dragging Node
     if (draggingNodeId && !isSimulating) {
       const snappedX = Math.round(worldPos.x / GRID_SIZE) * GRID_SIZE;
@@ -113,7 +128,7 @@ const CircuitVisualizer: React.FC<Props> = ({ data, isSimulating, poweredNodes, 
     const newNode: CircuitNode = {
       id: `n${Date.now()}`,
       type,
-      label: type.charAt(0).toUpperCase() + type.slice(1),
+      label: type.replace('gate_', '').replace('transistor_', '').replace('amplifier_', '').replace('half_duplex', 'HD').replace('full_duplex', 'FD').toUpperCase(),
       x,
       y,
       value: type === 'switch' ? 'open' : type === 'source' ? '9V' : undefined
@@ -280,11 +295,13 @@ const CircuitVisualizer: React.FC<Props> = ({ data, isSimulating, poweredNodes, 
          // Unpowered states
          switch (node.type) {
            case 'source': iconColor = theme === 'dark' ? "text-green-600" : "text-green-700"; break;
-           case 'led': iconColor = theme === 'dark' ? "text-red-900" : "text-red-300"; break; // Dim red when off
+           case 'led': iconColor = theme === 'dark' ? "text-red-900" : "text-red-300"; break;
            case 'resistor': iconColor = theme === 'dark' ? "text-orange-700" : "text-orange-600"; break;
            case 'capacitor': iconColor = theme === 'dark' ? "text-yellow-700" : "text-yellow-600"; break;
            case 'ground': iconColor = theme === 'dark' ? "text-slate-600" : "text-slate-500"; break;
            case 'switch': iconColor = theme === 'dark' ? "text-blue-600" : "text-blue-600"; break;
+           case 'amplifier_half_duplex':
+           case 'amplifier_full_duplex': iconColor = theme === 'dark' ? "text-purple-400" : "text-purple-600"; break;
            default: iconColor = theme === 'dark' ? "text-slate-500" : "text-slate-400";
          }
       }
@@ -299,13 +316,121 @@ const CircuitVisualizer: React.FC<Props> = ({ data, isSimulating, poweredNodes, 
       case 'resistor': return <Box className={className} size={size} />;
       case 'capacitor': return <Component className={className} size={size} />;
       case 'led': return <Zap className={className} size={size} fill={isSimulating && poweredNodes.has(node.id) ? "currentColor" : "none"} />;
-      case 'transistor': return <Triangle className={`${className} rotate-90`} size={size} />;
-      case 'ic': return <Cpu className={className} size={size} />;
       case 'ground': return <Circle className={className} size={size} />;
       case 'switch': return node.value === 'closed' 
           ? <ToggleRight className={className} size={size} /> 
           : <ToggleLeft className={className} size={size} />;
-      default: return <Box className={className} size={size} />;
+      
+      // Advanced Components (SVGs)
+      case 'transistor':
+      case 'transistor_npn':
+         return (
+             <svg viewBox="0 0 24 24" className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2">
+                 <circle cx="12" cy="12" r="9" />
+                 <path d="M12 6V12H6" />
+                 <path d="M12 12L18 8" />
+                 <path d="M12 12L18 16" />
+                 {/* Arrow on Emitter (NPN) points out */}
+                 <path d="M18 16L15 16" strokeLinecap="round"/> 
+                 <path d="M18 16L17 13" strokeLinecap="round"/>
+             </svg>
+         );
+      case 'transistor_pnp':
+          return (
+              <svg viewBox="0 0 24 24" className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 6V12H6" />
+                  <path d="M12 12L18 8" />
+                  <path d="M12 12L18 16" />
+                  {/* Arrow on Emitter (PNP) points in */}
+                  <path d="M15 10L12 12" strokeLinecap="round"/>
+                  <path d="M14 14L12 12" strokeLinecap="round"/>
+              </svg>
+          );
+      case 'gate_and':
+         return (
+            <svg viewBox="0 0 24 24" className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2">
+                 <path d="M6 5V19H12C15.866 19 19 15.866 19 12C19 8.13401 15.866 5 12 5H6Z" />
+                 <line x1="2" y1="8" x2="6" y2="8" />
+                 <line x1="2" y1="16" x2="6" y2="16" />
+                 <line x1="19" y1="12" x2="22" y2="12" />
+            </svg>
+         );
+      case 'gate_or':
+        return (
+            <svg viewBox="0 0 24 24" className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2">
+                 <path d="M5 5C5 5 8 8 8 12C8 16 5 19 5 19C8 19 16 19 19 12C16 5 8 5 5 5Z" />
+                 <line x1="2" y1="8" x2="6" y2="8" />
+                 <line x1="2" y1="16" x2="6" y2="16" />
+                 <line x1="19" y1="12" x2="22" y2="12" />
+            </svg>
+         );
+      case 'gate_not':
+         return (
+             <svg viewBox="0 0 24 24" className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2">
+                 <path d="M5 5L19 12L5 19V5Z" />
+                 <circle cx="20" cy="12" r="2" />
+             </svg>
+         );
+      case 'gate_xor':
+         return (
+             <svg viewBox="0 0 24 24" className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2">
+                 <path d="M6 5C6 5 9 8 9 12C9 16 6 19 6 19C9 19 17 19 20 12C17 5 9 5 6 5Z" />
+                 <path d="M2 5C2 5 5 8 5 12C5 16 2 19 2 19" />
+                 <line x1="19" y1="12" x2="22" y2="12" />
+             </svg>
+         );
+      case 'd_flip_flop':
+         return (
+             <svg viewBox="0 0 24 24" className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2">
+                 <rect x="4" y="4" width="16" height="16" rx="2" />
+                 <text x="8" y="10" fontSize="6" fill="currentColor" stroke="none">D</text>
+                 <text x="8" y="18" fontSize="6" fill="currentColor" stroke="none">></text>
+                 <text x="15" y="10" fontSize="6" fill="currentColor" stroke="none">Q</text>
+             </svg>
+         );
+      case 'seven_segment':
+         return (
+             <svg viewBox="0 0 24 24" className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2">
+                 <rect x="5" y="4" width="14" height="16" rx="1" />
+                 <path d="M8 7H16" strokeWidth="1" />
+                 <path d="M8 12H16" strokeWidth="1" />
+                 <path d="M8 17H16" strokeWidth="1" />
+                 <path d="M16 7V12" strokeWidth="1" />
+                 <path d="M16 12V17" strokeWidth="1" />
+                 <path d="M8 7V12" strokeWidth="1" />
+                 <path d="M8 12V17" strokeWidth="1" />
+             </svg>
+         );
+      case 'amplifier_half_duplex':
+        return (
+            <svg viewBox="0 0 24 24" className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2">
+                {/* Half Duplex: Side-by-side triangles representing shared bidirectional path */}
+                {/* Left: Amp pointing Right */}
+                <path d="M2 7 L2 17 L10 12 Z" fill="currentColor" fillOpacity="0.2" />
+                {/* Right: Amp pointing Left */}
+                <path d="M22 7 L22 17 L14 12 Z" fill="currentColor" fillOpacity="0.2" />
+                <path d="M2 7 L2 17 L10 12 Z" />
+                <path d="M22 7 L22 17 L14 12 Z" />
+            </svg>
+        );
+      case 'amplifier_full_duplex':
+        return (
+            <svg viewBox="0 0 24 24" className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2">
+                {/* Full Duplex: Stacked triangles representing simultaneous bidirectional paths */}
+                {/* Top Path: Left to Right */}
+                <path d="M2 6 L2 12 L10 9 Z" fill="currentColor" fillOpacity="0.2" />
+                <line x1="10" y1="9" x2="22" y2="9" strokeWidth="1.5"/>
+                <path d="M2 6 L2 12 L10 9 Z" />
+                
+                {/* Bottom Path: Right to Left */}
+                <path d="M22 18 L22 12 L14 15 Z" fill="currentColor" fillOpacity="0.2" />
+                <line x1="14" y1="15" x2="2" y2="15" strokeWidth="1.5"/>
+                <path d="M22 18 L22 12 L14 15 Z" />
+            </svg>
+        );
+      case 'ic': 
+      default: return <Cpu className={className} size={size} />;
     }
   };
 
@@ -437,6 +562,32 @@ const CircuitVisualizer: React.FC<Props> = ({ data, isSimulating, poweredNodes, 
             </div>
             );
         })}
+
+        {/* REMOTE CURSORS OVERLAY */}
+        <div className="absolute inset-0 pointer-events-none z-30 overflow-visible">
+            {collaborators && Array.from(collaborators.values()).map((collab: Collaborator) => (
+                 <div 
+                    key={collab.id}
+                    style={{
+                        position: 'absolute',
+                        left: 0,
+                        top: 0,
+                        transform: `translate(${collab.x}px, ${collab.y}px)`,
+                        transition: 'transform 0.1s linear'
+                    }}
+                 >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: collab.color }}>
+                        <path d="M3 3L10.07 19.97L12.58 12.58L19.97 10.07L3 3Z" fill="currentColor" stroke="white" strokeWidth="2" strokeLinejoin="round"/>
+                    </svg>
+                    <div 
+                        className="absolute left-4 top-4 px-2 py-1 rounded text-[10px] font-bold text-white shadow-sm whitespace-nowrap"
+                        style={{ backgroundColor: collab.color }}
+                    >
+                        {collab.username}
+                    </div>
+                 </div>
+            ))}
+        </div>
       </div>
 
       {/* HUD / Controls Overlay */}

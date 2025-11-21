@@ -8,6 +8,8 @@ import CircuitVisualizer from './components/CircuitVisualizer';
 import AIPanel from './components/AIPanel';
 import PresetLibrary from './components/PresetLibrary';
 import GuidePanel from './components/GuidePanel';
+import CollaborationPanel from './components/CollaborationPanel';
+import { useCollaboration } from './services/socketService';
 import { 
   LayoutDashboard, 
   Cpu, 
@@ -34,7 +36,12 @@ import {
   GraduationCap,
   X,
   Sun,
-  Moon
+  Moon,
+  Users,
+  Signal,
+  Triangle,
+  ArrowRightLeft,
+  Repeat
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 
@@ -234,7 +241,11 @@ const Editor = ({ data, onUpdate, onOpenGuide }: { data: CircuitData, onUpdate: 
   const [isSimulating, setIsSimulating] = useState(false);
   const [poweredNodes, setPoweredNodes] = useState<Set<string>>(new Set());
   const [isAIPanelOpen, setIsAIPanelOpen] = useState(false);
+  const [isCollabPanelOpen, setIsCollabPanelOpen] = useState(false);
   const { theme } = useTheme();
+  
+  // Collaboration Hook
+  const { collaborators, messages, sendMessage, sendCursorMove, isConnected } = useCollaboration('c1', CURRENT_USER.username, true);
   
   useEffect(() => {
     if (isSimulating) {
@@ -260,6 +271,11 @@ const Editor = ({ data, onUpdate, onOpenGuide }: { data: CircuitData, onUpdate: 
             { type: 'switch', icon: ToggleLeft, label: 'Switch' },
             { type: 'capacitor', icon: Component, label: 'Capacitor' },
             { type: 'ground', icon: Circle, label: 'Ground' },
+            { type: 'transistor', icon: Triangle, label: 'NPN' },
+            { type: 'gate_and', icon: Cpu, label: 'AND' },
+            // New Amplifiers
+            { type: 'amplifier_half_duplex', icon: ArrowRightLeft, label: 'Half Duplex' },
+            { type: 'amplifier_full_duplex', icon: Repeat, label: 'Full Duplex' },
         ].map((item) => (
             <div 
                 key={item.type}
@@ -270,7 +286,7 @@ const Editor = ({ data, onUpdate, onOpenGuide }: { data: CircuitData, onUpdate: 
                 <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-full group-hover:bg-cyan-100 dark:group-hover:bg-cyan-900/50 text-slate-600 dark:text-slate-400 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors border border-slate-200 dark:border-slate-700 group-hover:border-cyan-500 dark:group-hover:border-cyan-700">
                     <item.icon size={24} />
                 </div>
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white font-medium">{item.label}</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white font-medium text-center leading-tight">{item.label}</span>
             </div>
         ))}
       </div>
@@ -305,6 +321,21 @@ const Editor = ({ data, onUpdate, onOpenGuide }: { data: CircuitData, onUpdate: 
           </div>
           <div className="flex items-center gap-2">
              <button 
+                onClick={() => setIsCollabPanelOpen(!isCollabPanelOpen)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md border text-sm transition-all ${
+                    isCollabPanelOpen 
+                    ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border-purple-300 dark:border-purple-700' 
+                    : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700'
+                }`}
+              >
+                <Users size={16} />
+                <span className="hidden sm:inline">Collab</span>
+                <span className="flex h-2 w-2 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                </span>
+             </button>
+             <button 
                 onClick={onOpenGuide}
                 className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-md border border-slate-200 dark:border-slate-700 text-sm transition-colors"
               >
@@ -333,7 +364,19 @@ const Editor = ({ data, onUpdate, onOpenGuide }: { data: CircuitData, onUpdate: 
                 poweredNodes={poweredNodes}
                 onUpdate={onUpdate}
                 theme={theme}
+                collaborators={collaborators}
+                onCursorMove={sendCursorMove}
             />
+            
+            <CollaborationPanel 
+                isOpen={isCollabPanelOpen}
+                onClose={() => setIsCollabPanelOpen(false)}
+                collaborators={collaborators}
+                messages={messages}
+                onSendMessage={sendMessage}
+                currentUser={CURRENT_USER.username}
+            />
+
             <AIPanel 
                 isOpen={isAIPanelOpen}
                 onClose={() => setIsAIPanelOpen(false)}

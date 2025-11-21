@@ -10,7 +10,7 @@ export interface User {
 // Circuit Node structure for JSON data
 export interface CircuitNode {
   id: string;
-  type: 'source' | 'resistor' | 'capacitor' | 'inductor' | 'led' | 'transistor' | 'ic' | 'ground' | 'switch';
+  type: 'source' | 'resistor' | 'capacitor' | 'inductor' | 'led' | 'transistor' | 'transistor_npn' | 'transistor_pnp' | 'ic' | 'ground' | 'switch' | 'gate_and' | 'gate_or' | 'gate_not' | 'gate_xor' | 'd_flip_flop' | 'seven_segment' | 'amplifier_half_duplex' | 'amplifier_full_duplex';
   label: string;
   x: number;
   y: number;
@@ -74,4 +74,24 @@ export interface GuideChapter {
   id: string;
   title: string;
   sections: GuideSection[];
+}
+
+// Collaboration Types
+export interface Collaborator {
+  id: string;
+  username: string;
+  color: string;
+  x: number;
+  y: number;
+  selection?: string;
+  isActive?: boolean;
+}
+
+export interface ChatMessage {
+  id: string;
+  userId: string;
+  username: string;
+  text: string;
+  timestamp: string;
+  isSystem?: boolean;
 }

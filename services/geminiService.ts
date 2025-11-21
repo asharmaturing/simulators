@@ -21,7 +21,7 @@ export const generateCircuitDesign = async (prompt: string): Promise<CircuitData
       The JSON structure must be valid and adhere to this schema:
       {
         "nodes": [
-          { "id": "string", "type": "source" | "resistor" | "capacitor" | "inductor" | "led" | "transistor" | "ic" | "ground" | "switch", "label": "string", "x": number, "y": number, "value": "string" (optional) }
+          { "id": "string", "type": "source" | "resistor" | "capacitor" | "inductor" | "led" | "transistor" | "transistor_npn" | "transistor_pnp" | "ic" | "ground" | "switch" | "gate_and" | "gate_or" | "gate_not" | "gate_xor" | "d_flip_flop" | "seven_segment" | "amplifier_half_duplex" | "amplifier_full_duplex", "label": "string", "x": number, "y": number, "value": "string" (optional) }
         ],
         "connections": [
           { "id": "string", "sourceId": "string", "targetId": "string" }
@@ -33,6 +33,8 @@ export const generateCircuitDesign = async (prompt: string): Promise<CircuitData
       2. Use 'x' and 'y' coordinates to position them on a canvas roughly 800x600.
       3. Ensure connections make sense electrically.
       4. For switches, default value to "open" unless specified otherwise.
+      5. For logic gates and digital components, arrange them to show signal flow clearly.
+      6. Use 'amplifier_half_duplex' or 'amplifier_full_duplex' when signal amplification or repeating is requested in specific modes.
     `;
 
     const response = await ai.models.generateContent({
@@ -50,7 +52,17 @@ export const generateCircuitDesign = async (prompt: string): Promise<CircuitData
                 type: Type.OBJECT,
                 properties: {
                   id: { type: Type.STRING },
-                  type: { type: Type.STRING, enum: ['source', 'resistor', 'capacitor', 'inductor', 'led', 'transistor', 'ic', 'ground', 'switch'] },
+                  type: { 
+                    type: Type.STRING, 
+                    enum: [
+                      'source', 'resistor', 'capacitor', 'inductor', 'led', 
+                      'transistor', 'transistor_npn', 'transistor_pnp', 
+                      'ic', 'ground', 'switch', 
+                      'gate_and', 'gate_or', 'gate_not', 'gate_xor', 
+                      'd_flip_flop', 'seven_segment',
+                      'amplifier_half_duplex', 'amplifier_full_duplex'
+                    ] 
+                  },
                   label: { type: Type.STRING },
                   x: { type: Type.NUMBER },
                   y: { type: Type.NUMBER },
