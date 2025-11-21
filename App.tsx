@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect, useContext, createContext } from 'react';
 import { HashRouter, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Circuit, CircuitData, Interaction } from './types';
+import { Circuit, CircuitData, Interaction, SimulationResult } from './types';
 import { MOCK_CIRCUITS, CURRENT_USER, MOCK_INTERACTIONS } from './services/mockData';
-import { runSimulation } from './services/simulator';
+import { runAdvancedSimulation } from './services/simulator';
 import CircuitVisualizer from './components/CircuitVisualizer';
 import AIPanel from './components/AIPanel';
 import PresetLibrary from './components/PresetLibrary';
@@ -287,7 +287,7 @@ const COMPONENT_GROUPS = [
 // Editor Component
 const Editor = ({ data, onUpdate, onOpenGuide }: { data: CircuitData, onUpdate: (d: CircuitData) => void, onOpenGuide: () => void }) => {
   const [isSimulating, setIsSimulating] = useState(false);
-  const [poweredNodes, setPoweredNodes] = useState<Set<string>>(new Set());
+  const [simulationResult, setSimulationResult] = useState<SimulationResult | null>(null);
   const [isAIPanelOpen, setIsAIPanelOpen] = useState(false);
   const [isCollabPanelOpen, setIsCollabPanelOpen] = useState(false);
   const { theme } = useTheme();
@@ -298,10 +298,10 @@ const Editor = ({ data, onUpdate, onOpenGuide }: { data: CircuitData, onUpdate: 
   
   useEffect(() => {
     if (isSimulating) {
-      const active = runSimulation(data);
-      setPoweredNodes(active);
+      const result = runAdvancedSimulation(data);
+      setSimulationResult(result);
     } else {
-      setPoweredNodes(new Set());
+      setSimulationResult(null);
     }
   }, [isSimulating, data]);
 
@@ -430,7 +430,7 @@ const Editor = ({ data, onUpdate, onOpenGuide }: { data: CircuitData, onUpdate: 
             <CircuitVisualizer 
                 data={data}
                 isSimulating={isSimulating}
-                poweredNodes={poweredNodes}
+                simulationResult={simulationResult}
                 onUpdate={onUpdate}
                 theme={theme}
                 collaborators={collaborators}

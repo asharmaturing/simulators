@@ -30,6 +30,14 @@ export interface CircuitData {
   connections: CircuitConnection[];
 }
 
+// New: Detailed Simulation Results
+export interface SimulationResult {
+  nodeVoltages: Map<string, number>;   // NodeId -> Voltage (V)
+  componentCurrents: Map<string, number>; // ComponentId -> Current (A)
+  componentPower: Map<string, number>;    // ComponentId -> Power (W)
+  isPowered: Set<string>;              // Backward compatibility for visuals
+}
+
 // Matching SQL: circuits
 export interface Circuit {
   id: string;

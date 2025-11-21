@@ -1,12 +1,12 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { CircuitData, CircuitNode, CircuitConnection, Collaborator } from '../types';
-import { Battery, Zap, Box, Component, Cpu, Triangle, Circle, ToggleLeft, ToggleRight, Trash2, MousePointer2, Move, Activity, CheckCircle2, AlertCircle } from 'lucide-react';
+import { CircuitData, CircuitNode, CircuitConnection, Collaborator, SimulationResult } from '../types';
+import { Battery, Zap, Box, Component, Cpu, Triangle, Circle, ToggleLeft, ToggleRight, Trash2, MousePointer2, Move, Activity, CheckCircle2, AlertCircle, Gauge } from 'lucide-react';
 
 interface Props {
   data: CircuitData;
   isSimulating: boolean;
-  poweredNodes: Set<string>;
+  simulationResult: SimulationResult | null;
   onUpdate: (data: CircuitData) => void;
   theme?: 'dark' | 'light';
   collaborators?: Map<string, Collaborator>;
@@ -18,7 +18,7 @@ const GRID_SIZE = 20;
 const CircuitVisualizer: React.FC<Props> = ({ 
     data, 
     isSimulating, 
-    poweredNodes, 
+    simulationResult, 
     onUpdate, 
     theme = 'dark',
     collaborators,
@@ -28,6 +28,8 @@ const CircuitVisualizer: React.FC<Props> = ({
   const [view, setView] = useState({ x: 0, y: 0, zoom: 1 });
   const [isPanning, setIsPanning] = useState(false);
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
   // Interaction State
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
@@ -66,8 +68,11 @@ const CircuitVisualizer: React.FC<Props> = ({
       setIsPanning(true);
       setLastMousePos({ x: e.clientX, y: e.clientY });
     } else if (e.button === 0 && !draggingNodeId && !wiringStartId) {
-      // Background click - clear wiring
+      // Background click - clear wiring and selection
       setWiringStartId(null);
+      if (e.target === containerRef.current) {
+        setSelectedNodeId(null);
+      }
     }
   };
 
@@ -131,7 +136,7 @@ const CircuitVisualizer: React.FC<Props> = ({
       label: type.replace('gate_', '').replace('transistor_', '').replace('amplifier_', '').replace('half_duplex', 'HD').replace('full_duplex', 'FD').toUpperCase(),
       x,
       y,
-      value: type === 'switch' ? 'open' : type === 'source' ? '9V' : undefined
+      value: type === 'switch' ? 'open' : type === 'source' ? '9V' : type === 'resistor' ? '1k' : undefined
     };
 
     onUpdate({
@@ -143,6 +148,8 @@ const CircuitVisualizer: React.FC<Props> = ({
   const handleNodeMouseDown = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     if (isPanning) return;
+    
+    setSelectedNodeId(id);
 
     if (isSimulating) {
         const node = data.nodes.find(n => n.id === id);
@@ -162,6 +169,7 @@ const CircuitVisualizer: React.FC<Props> = ({
             nodes: data.nodes.filter(n => n.id !== id),
             connections: data.connections.filter(c => c.sourceId !== id && c.targetId !== id)
         });
+        setSelectedNodeId(null);
     } else if (e.altKey) {
         // Start wiring
         setWiringStartId(id);
@@ -276,9 +284,12 @@ const CircuitVisualizer: React.FC<Props> = ({
 
   const getNodeStyles = (node: CircuitNode, isPowered: boolean) => {
       const baseClass = "transition-all duration-300 shadow-lg";
+      const isSelected = selectedNodeId === node.id;
       
       let activeGlow = "";
-      if (theme === 'dark') {
+      if (isSelected) {
+          activeGlow = "ring-2 ring-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.5)] border-transparent";
+      } else if (theme === 'dark') {
          activeGlow = isSimulating && isPowered ? "ring-2 ring-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.6)]" : "border border-slate-700 hover:border-cyan-500";
       } else {
          activeGlow = isSimulating && isPowered ? "ring-2 ring-cyan-600 shadow-[0_0_15px_rgba(8,145,178,0.4)]" : "border border-slate-300 hover:border-cyan-600";
@@ -315,7 +326,7 @@ const CircuitVisualizer: React.FC<Props> = ({
       case 'source': return <Battery className={className} size={size} />;
       case 'resistor': return <Box className={className} size={size} />;
       case 'capacitor': return <Component className={className} size={size} />;
-      case 'led': return <Zap className={className} size={size} fill={isSimulating && poweredNodes.has(node.id) ? "currentColor" : "none"} />;
+      case 'led': return <Zap className={className} size={size} fill={isSimulating && simulationResult?.isPowered.has(node.id) ? "currentColor" : "none"} />;
       case 'ground': return <Circle className={className} size={size} />;
       case 'switch': return node.value === 'closed' 
           ? <ToggleRight className={className} size={size} /> 
@@ -325,26 +336,28 @@ const CircuitVisualizer: React.FC<Props> = ({
       case 'transistor':
       case 'transistor_npn':
          return (
-             <svg viewBox="0 0 24 24" className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2">
-                 <circle cx="12" cy="12" r="9" />
-                 <path d="M12 6V12H6" />
-                 <path d="M12 12L18 8" />
-                 <path d="M12 12L18 16" />
-                 {/* Arrow on Emitter (NPN) points out */}
-                 <path d="M18 16L15 16" strokeLinecap="round"/> 
-                 <path d="M18 16L17 13" strokeLinecap="round"/>
+             <svg viewBox="0 0 24 24" className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                 <circle cx="12" cy="12" r="10" />
+                 <path d="M2 12H8" /> {/* Base Lead */}
+                 <path d="M8 7V17" strokeWidth="2.5" /> {/* Base Bar */}
+                 <path d="M8 10L16 4" /> {/* Collector */}
+                 <path d="M8 14L16 20" /> {/* Emitter */}
+                 {/* Arrow Out (NPN) on Emitter */}
+                 <path d="M16 20L13 19.5" />
+                 <path d="M16 20L14 17.5" />
              </svg>
          );
       case 'transistor_pnp':
           return (
-              <svg viewBox="0 0 24 24" className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="9" />
-                  <path d="M12 6V12H6" />
-                  <path d="M12 12L18 8" />
-                  <path d="M12 12L18 16" />
-                  {/* Arrow on Emitter (PNP) points in */}
-                  <path d="M15 10L12 12" strokeLinecap="round"/>
-                  <path d="M14 14L12 12" strokeLinecap="round"/>
+              <svg viewBox="0 0 24 24" className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                 <circle cx="12" cy="12" r="10" />
+                 <path d="M2 12H8" /> {/* Base Lead */}
+                 <path d="M8 7V17" strokeWidth="2.5" /> {/* Base Bar */}
+                 <path d="M8 10L16 4" /> {/* Collector */}
+                 <path d="M8 14L16 20" /> {/* Emitter */}
+                  {/* Arrow In (PNP) on Emitter */}
+                  <path d="M12 17L9.5 15" /> 
+                  <path d="M12 17L13 14" />
               </svg>
           );
       case 'gate_and':
@@ -405,21 +418,23 @@ const CircuitVisualizer: React.FC<Props> = ({
       case 'amplifier_half_duplex':
         return (
             <svg viewBox="0 0 24 24" className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M2 7 L2 17 L10 12 Z" fill="currentColor" fillOpacity="0.2" />
-                <path d="M22 7 L22 17 L14 12 Z" fill="currentColor" fillOpacity="0.2" />
-                <path d="M2 7 L2 17 L10 12 Z" />
-                <path d="M22 7 L22 17 L14 12 Z" />
+                {/* Two triangles tip-to-tip representing shared path */}
+                <path d="M4 6 L4 18 L11 12 Z" fill="currentColor" fillOpacity="0.1" />
+                <path d="M20 6 L20 18 L13 12 Z" fill="currentColor" fillOpacity="0.1" />
             </svg>
         );
       case 'amplifier_full_duplex':
         return (
             <svg viewBox="0 0 24 24" className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M2 6 L2 12 L10 9 Z" fill="currentColor" fillOpacity="0.2" />
-                <line x1="10" y1="9" x2="22" y2="9" strokeWidth="1.5"/>
-                <path d="M2 6 L2 12 L10 9 Z" />
-                <path d="M22 18 L22 12 L14 15 Z" fill="currentColor" fillOpacity="0.2" />
-                <line x1="14" y1="15" x2="2" y2="15" strokeWidth="1.5"/>
-                <path d="M22 18 L22 12 L14 15 Z" />
+                {/* Top Triangle pointing Right */}
+                <path d="M4 3 L4 11 L14 7 Z" fill="currentColor" fillOpacity="0.1" />
+                <line x1="0" y1="7" x2="4" y2="7" strokeWidth="1.5"/>
+                <line x1="14" y1="7" x2="24" y2="7" strokeWidth="1.5"/>
+                
+                {/* Bottom Triangle pointing Left */}
+                <path d="M20 13 L20 21 L10 17 Z" fill="currentColor" fillOpacity="0.1" />
+                <line x1="24" y1="17" x2="20" y2="17" strokeWidth="1.5"/>
+                <line x1="10" y1="17" x2="0" y2="17" strokeWidth="1.5"/>
             </svg>
         );
       case 'ic': 
@@ -432,6 +447,61 @@ const CircuitVisualizer: React.FC<Props> = ({
   const wireStrokeBase = theme === 'dark' ? '#475569' : '#94a3b8'; // slate-600 vs slate-400
   const wireStrokeActive = theme === 'dark' ? '#22d3ee' : '#0891b2'; // cyan-400 vs cyan-600
   const wireShadowActive = theme === 'dark' ? 'drop-shadow(0 0 4px #22d3ee)' : 'drop-shadow(0 0 4px rgba(8, 145, 178, 0.5))';
+
+  const formatEngineering = (num: number, unit: string) => {
+    if (Math.abs(num) < 1e-9) return `0 ${unit}`;
+    if (Math.abs(num) < 1e-6) return `${(num * 1e9).toFixed(1)} n${unit}`;
+    if (Math.abs(num) < 1e-3) return `${(num * 1e6).toFixed(1)} µ${unit}`;
+    if (Math.abs(num) < 1) return `${(num * 1e3).toFixed(1)} m${unit}`;
+    if (Math.abs(num) >= 1000) return `${(num / 1e3).toFixed(1)} k${unit}`;
+    return `${num.toFixed(2)} ${unit}`;
+  };
+
+  // --- Render Selected Component Multimeter Data ---
+  const renderMultimeter = () => {
+    if (!isSimulating || !simulationResult || !selectedNodeId) return null;
+    
+    const node = data.nodes.find(n => n.id === selectedNodeId);
+    if (!node) return null;
+
+    const voltage = simulationResult.nodeVoltages.get(node.id) || 0;
+    const current = simulationResult.componentCurrents.get(node.id) || 0;
+    const power = simulationResult.componentPower.get(node.id) || 0;
+
+    // Don't show for ground
+    if (node.type === 'ground') return null;
+
+    return (
+      <div className="absolute top-24 right-6 w-64 bg-slate-800/90 backdrop-blur border border-slate-600 rounded-xl p-4 text-slate-200 shadow-2xl z-30 animate-in slide-in-from-right-5">
+         <div className="flex items-center justify-between mb-3 border-b border-slate-600 pb-2">
+            <h3 className="font-bold text-cyan-400 flex items-center gap-2">
+              <Gauge size={16} />
+              Multimeter
+            </h3>
+            <span className="text-xs text-slate-400">{node.label}</span>
+         </div>
+         
+         <div className="space-y-3 font-mono text-sm">
+            <div className="flex justify-between">
+               <span className="text-slate-400">Voltage (Node)</span>
+               <span className="font-bold text-green-400">{voltage.toFixed(2)} V</span>
+            </div>
+            <div className="flex justify-between">
+               <span className="text-slate-400">Current</span>
+               <span className="font-bold text-yellow-400">{formatEngineering(current, 'A')}</span>
+            </div>
+            <div className="flex justify-between">
+               <span className="text-slate-400">Power</span>
+               <span className="font-bold text-red-400">{formatEngineering(power, 'W')}</span>
+            </div>
+            <div className="flex justify-between">
+               <span className="text-slate-400">Resistance</span>
+               <span className="text-slate-300">{node.value || 'N/A'}</span>
+            </div>
+         </div>
+      </div>
+    );
+  };
 
   return (
     <div 
@@ -469,7 +539,7 @@ const CircuitVisualizer: React.FC<Props> = ({
             const target = data.nodes.find(n => n.id === conn.targetId);
             if (!source || !target) return null;
 
-            const isWirePowered = isSimulating && poweredNodes.has(source.id) && poweredNodes.has(target.id);
+            const isWirePowered = isSimulating && simulationResult?.isPowered.has(source.id) && simulationResult?.isPowered.has(target.id);
             const pathD = getSmartWirePath(source, target, conn.id);
             
             return (
@@ -517,14 +587,19 @@ const CircuitVisualizer: React.FC<Props> = ({
 
         {/* Nodes Layer */}
         {data.nodes.map((node) => {
-            const isPowered = poweredNodes.has(node.id);
+            const isPowered = simulationResult?.isPowered.has(node.id) ?? false;
             const styles = getNodeStyles(node, isPowered);
+            
+            // Voltage Label (Virtual Probe)
+            const voltage = simulationResult?.nodeVoltages.get(node.id);
 
             return (
             <div
                 key={node.id}
                 onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
                 onMouseUp={(e) => handleNodeMouseUp(e, node.id)}
+                onMouseEnter={() => setHoveredNodeId(node.id)}
+                onMouseLeave={() => setHoveredNodeId(null)}
                 className={`absolute flex flex-col items-center justify-center group z-10`}
                 style={{ 
                     left: node.x, 
@@ -547,10 +622,20 @@ const CircuitVisualizer: React.FC<Props> = ({
                     )}
                 </div>
 
-                {/* Professional Label */}
-                <div className={`absolute -bottom-8 ${theme === 'dark' ? 'bg-slate-900/90 text-slate-300 border-slate-700' : 'bg-white/90 text-slate-700 border-slate-200'} backdrop-blur px-2 py-1 rounded text-[10px] font-mono border whitespace-nowrap shadow-xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-20`}>
-                    <span className={`font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{node.label}</span>
-                    {node.value && <span className={`${theme === 'dark' ? 'text-cyan-400' : 'text-cyan-600'} ml-1`}>| {node.value}</span>}
+                {/* Professional Label or Voltage Probe */}
+                <div className={`absolute -bottom-8 backdrop-blur px-2 py-1 rounded text-[10px] font-mono border whitespace-nowrap shadow-xl pointer-events-none transition-opacity z-20 ${
+                    isSimulating && voltage !== undefined 
+                        ? 'bg-slate-800/90 text-yellow-300 border-yellow-600/50 opacity-100'
+                        : `opacity-0 group-hover:opacity-100 ${theme === 'dark' ? 'bg-slate-900/90 text-slate-300 border-slate-700' : 'bg-white/90 text-slate-700 border-slate-200'}`
+                }`}>
+                    {isSimulating && voltage !== undefined ? (
+                        <span className="font-bold">{voltage.toFixed(2)}V</span>
+                    ) : (
+                        <>
+                            <span className={`font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{node.label}</span>
+                            {node.value && <span className={`${theme === 'dark' ? 'text-cyan-400' : 'text-cyan-600'} ml-1`}>| {node.value}</span>}
+                        </>
+                    )}
                 </div>
             </div>
             );
@@ -583,6 +668,9 @@ const CircuitVisualizer: React.FC<Props> = ({
             ))}
         </div>
       </div>
+      
+      {/* Phase 1: Multimeter Overlay */}
+      {renderMultimeter()}
 
       {/* HUD / Footer Stats */}
       <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between pointer-events-none z-20">
@@ -602,7 +690,7 @@ const CircuitVisualizer: React.FC<Props> = ({
                     : (theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-white/80 border-slate-200 text-slate-500')
              }`}>
                  {isSimulating ? <Activity size={14} className="animate-pulse" /> : <CheckCircle2 size={14} />}
-                 {isSimulating ? 'Running...' : 'Ready'}
+                 {isSimulating ? 'Simulation Active' : 'Editor Ready'}
              </div>
           </div>
       </div>
