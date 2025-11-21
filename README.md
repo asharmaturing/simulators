@@ -1,20 +1,62 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# CircuitMind AI ⚡️🤖
 
-# Run and deploy your AI Studio app
+**CircuitMind AI** is an intelligent, next-generation circuit design platform that leverages **Google Gemini** to generate, analyze, and visualize electronic schematics from natural language descriptions.
 
-This contains everything you need to run your app locally.
+Built for students, hobbyists, and engineers, it combines a powerful visual editor with AI assistance and real-time simulation.
 
-View your app in AI Studio: https://ai.studio/apps/drive/1ShTFsUXpw8D5I8vbAwlf-7b-KSpYYg3L
+## ✨ Key Features
 
-## Run Locally
+- **AI-Powered Design**: Ask Gemini to "Design a 555 timer circuit" or "Create a voltage divider," and watch the schematic appear instantly.
+- **Intelligent Analysis**: Get instant feedback on your circuit's functionality, potential issues, and theoretical explanations.
+- **Real-Time Simulation**:
+  - Visualizes voltage with dynamic wire coloring (Blue → Red).
+  - Animates current flow.
+  - Instantly detects failures (e.g., overheating components) with a Pass/Fail verdict system.
+- **Interactive Editor**:
+  - Drag-and-drop component palette.
+  - Smart wiring with bezier curves.
+  - Pan, zoom, and snap-to-grid support.
+- **Collaboration**: Real-time multi-user editing with cursor tracking and chat (Socket.io).
+- **Learning Resources**: Built-in interactive guide and preset library for beginners to advanced users.
 
-**Prerequisites:**  Node.js
+## 🛠️ Tech Stack
 
+- **Frontend**: React 19, TypeScript, Vite
+- **Styling**: Tailwind CSS
+- **AI**: Google Gemini API (`@google/genai`)
+- **Icons**: Lucide React
+- **Real-time**: Socket.io Client
+- **Simulation Engine**: Custom TypeScript-based Modified Nodal Analysis (MNA) solver with Gaussian Elimination.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## 🚀 Getting Started
+
+1. **Clone the repository**
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+3. **Set up Environment Variables**
+   Create a `.env` file or configure your environment with:
+   ```bash
+   API_KEY=your_google_gemini_api_key
+   ```
+4. **Run the development server**
+   ```bash
+   npm run dev
+   ```
+
+## 🧠 How Simulation Works
+
+CircuitMind uses a custom linear DC simulator based on **Modified Nodal Analysis (MNA)**.
+1. The circuit graph is converted into a system of linear equations (`Ax = B`).
+2. It creates a matrix representing Conductance (G) and Voltage constraints.
+3. It solves the matrix using **Gaussian Elimination** to determine node voltages and component currents.
+4. Results are fed back into the Visualizer for real-time feedback (heat, light, logic levels).
+
+## 🤝 Contributing
+
+Contributions are welcome! Please fork the repository and submit a pull request for any new components, simulation models, or UI improvements.
+
+---
+
+*Powered by Google Gemini 2.5 Flash*
