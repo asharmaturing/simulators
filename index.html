@@ -11,40 +11,31 @@
         theme: {
           extend: {
             colors: {
-              // Blueprint / Paper Theme
               paper: {
-                50: '#fbf9f1', // Lightest Cream
-                100: '#f8f4e8', // Standard Paper
-                200: '#ece6d0', // Darker Paper/Grid
-                900: '#2c2820', // Ink
+                50: '#fbf9f1',
+                100: '#f8f9fc', // Updated Pro Paper
+                200: '#e2e8f0',
+                900: '#1e293b',
               },
               blueprint: {
                 800: '#1e293b',
-                900: '#0f172a', // Deep Navy
+                900: '#0f172a',
                 950: '#020617',
-                accent: '#22d3ee', // Cyan Glow
+                accent: '#38bdf8',
               },
-              cyan: {
-                450: '#22d3ee',
-              }
             },
             fontFamily: {
               sans: ['Inter', 'sans-serif'],
               mono: ['JetBrains Mono', 'monospace'],
             },
             animation: {
-              'flow': 'flow 1s linear infinite',
-              'smoke': 'smoke 2s ease-out infinite',
+              'flow': 'flow 0.5s linear infinite',
+              'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
             },
             keyframes: {
               flow: {
-                'to': { strokeDashoffset: '-20' },
+                'to': { strokeDashoffset: '-24' },
               },
-              smoke: {
-                '0%': { transform: 'translateY(0) scale(0.5)', opacity: '0' },
-                '20%': { opacity: '1' },
-                '100%': { transform: 'translateY(-20px) scale(1.5)', opacity: '0' },
-              }
             }
           },
         },
@@ -53,28 +44,37 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
       body {
-        background-color: #0f172a; /* Default Dark Blueprint */
+        background-color: #0f172a;
         color: #e2e8f0;
         font-family: 'Inter', sans-serif;
-        transition: background-color 0.3s, color 0.3s;
       }
-      /* Paper Mode (Light) */
       html:not(.dark) body {
-        background-color: #f8f4e8;
+        background-color: #f8f9fc;
         color: #1e293b;
       }
-      .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-      }
-      .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
+      .scrollbar-hide::-webkit-scrollbar { display: none; }
+      .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+      
+      .bg-grid-pattern {
+        mask-image: linear-gradient(to bottom, transparent, 5%, black, 95%, transparent);
       }
       
-      /* Engineering Grid Pattern */
-      .bg-grid-pattern {
-        background-image: linear-gradient(to right, rgba(128, 128, 128, 0.1) 1px, transparent 1px),
-                          linear-gradient(to bottom, rgba(128, 128, 128, 0.1) 1px, transparent 1px);
+      /* Custom range input for zoom */
+      input[type=range]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        height: 16px;
+        width: 16px;
+        border-radius: 50%;
+        background: #06b6d4;
+        cursor: pointer;
+        margin-top: -6px;
+      }
+      input[type=range]::-webkit-slider-runnable-track {
+        width: 100%;
+        height: 4px;
+        cursor: pointer;
+        background: #334155;
+        border-radius: 2px;
       }
     </style>
   <script type="importmap">
