@@ -1,0 +1,5 @@
+{
+  "name": "CircuitMind AI",
+  "description": "An intelligent circuit design platform leveraging Google Gemini to generate, analyze, and visualize electronic schematics from natural language descriptions.",
+  "requestFramePermissions": []
+}
