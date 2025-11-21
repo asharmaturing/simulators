@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { CircuitData, CircuitNode, CircuitConnection, Collaborator, SimulationResult } from '../types';
 import { Trash2, Activity, Gauge, Plus, Minus, AlertTriangle, CheckCircle2, Flame, Zap, MousePointer2, Cable, Maximize, CloudFog, Component } from 'lucide-react';
@@ -44,6 +45,17 @@ const CircuitVisualizer: React.FC<Props> = ({
 
   // Verdict State
   const [verdict, setVerdict] = useState<{ state: VerdictState; message: string; details?: string } | null>(null);
+
+  // Calculate dynamic max voltage for gradient scaling
+  const maxVoltage = React.useMemo(() => {
+      if (!simulationResult) return 9; // Default baseline
+      let max = 0.1; // Avoid divide by zero
+      for (const v of simulationResult.nodeVoltages.values()) {
+          const absV = Math.abs(v);
+          if (absV > max) max = absV;
+      }
+      return max;
+  }, [simulationResult]);
 
   // --- Simulation Verdict Logic ---
   useEffect(() => {
@@ -304,10 +316,10 @@ const CircuitVisualizer: React.FC<Props> = ({
               if (vAvg < 0.1) {
                   color = '#3b82f6'; // Ground (Blue)
               } else {
-                   // Gradient: 0V (Blue 240deg) -> 9V (Red 0deg)
-                   const maxV = 9.0; 
-                   const clamped = Math.max(0, Math.min(vAvg, maxV));
-                   const hue = 240 - (clamped / maxV) * 240;
+                   // Gradient: 0V (Blue 240deg) -> MaxV (Red 0deg)
+                   // We map 0..MaxV to 240..0 hue
+                   const clamped = Math.max(0, Math.min(vAvg, maxVoltage));
+                   const hue = 240 - (clamped / maxVoltage) * 240;
                    color = `hsl(${hue}, 90%, 60%)`;
               }
               width = 4; // Thicker for voltage visibility

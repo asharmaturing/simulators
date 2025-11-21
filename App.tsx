@@ -15,7 +15,7 @@ import {
   Sun, Moon, Users, Plus, Search, LogOut, BookOpen, GraduationCap,
   ChevronRight, ChevronDown, X, PanelLeftClose, PanelLeftOpen,
   Zap, Battery, Circle, ToggleLeft, Box, Component, Triangle, ArrowRightLeft, Repeat,
-  PenLine, Save
+  PenLine, Save, Activity, Waves
 } from 'lucide-react';
 
 // --- Theme Context ---
@@ -70,6 +70,23 @@ const COMPONENT_GROUPS = [
             { type: 'source', label: 'Battery 9V' },
             { type: 'ground', label: 'Ground' },
             { type: 'switch', label: 'Switch' },
+        ]
+    },
+    {
+        title: 'Professional',
+        items: [
+            { type: 'esp32', label: 'ESP32 MCU' },
+            { type: 'oled_display', label: 'OLED 128x64' },
+            { type: 'servo', label: 'Servo Motor' },
+            { type: 'relay', label: 'Relay Module' },
+            { type: 'bench_psu', label: 'Bench Power' },
+            { type: 'scope_probe', label: 'Scope Probe' },
+            { type: 'func_gen', label: 'Func. Gen.' },
+            { type: 'neopixel', label: 'NeoPixel' },
+            { type: 'bme280', label: 'BME280 Env' },
+            { type: 'ina219', label: 'Current Sens' },
+            { type: 'logic_probe', label: 'Logic Probe' },
+            { type: 'lcd_16x2', label: 'LCD 16x2' },
         ]
     },
     {
@@ -173,6 +190,7 @@ const Editor = ({ data, onUpdate, onOpenGuide }: { data: CircuitData, onUpdate: 
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const [projectName, setProjectName] = useState('New Project');
   const [isEditingName, setIsEditingName] = useState(false);
+  const [vizMode, setVizMode] = useState<'voltage' | 'current'>('voltage');
   
   // Panels
   const [showAi, setShowAi] = useState(false);
@@ -198,6 +216,12 @@ const Editor = ({ data, onUpdate, onOpenGuide }: { data: CircuitData, onUpdate: 
       ...group,
       items: group.items.filter(item => item.label.toLowerCase().includes(searchQuery.toLowerCase()))
   })).filter(group => group.items.length > 0);
+
+  // Context Menu Mock for "Add to Library"
+  const handleContextMenu = (e: React.MouseEvent, item: any) => {
+      e.preventDefault();
+      alert(`Added ${item.label} to your Personal Library!`);
+  };
 
   return (
     <div className="flex h-full relative overflow-hidden">
@@ -235,12 +259,16 @@ const Editor = ({ data, onUpdate, onOpenGuide }: { data: CircuitData, onUpdate: 
                                     key={item.type} 
                                     draggable 
                                     onDragStart={(e) => e.dataTransfer.setData('componentType', item.type)}
-                                    className="flex flex-col items-center gap-2 p-3 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-cyan-500 hover:ring-1 hover:ring-cyan-500/20 transition-all cursor-grab active:cursor-grabbing group"
+                                    onContextMenu={(e) => handleContextMenu(e, item)}
+                                    className="flex flex-col items-center gap-2 p-3 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-cyan-500 hover:ring-1 hover:ring-cyan-500/20 transition-all cursor-grab active:cursor-grabbing group relative"
                                  >
                                      <div className="text-slate-700 dark:text-slate-300 group-hover:text-cyan-600 dark:group-hover:text-cyan-400">
                                          <SchematicIcon type={item.type} />
                                      </div>
                                      <span className="text-[10px] font-medium text-center text-slate-600 dark:text-slate-400 font-mono">{item.label}</span>
+                                     {group.title === 'Professional' && (
+                                         <div className="absolute top-1 right-1 w-1.5 h-1.5 bg-purple-500 rounded-full" title="Pro Component"></div>
+                                     )}
                                  </div>
                              ))}
                          </div>
@@ -287,22 +315,37 @@ const Editor = ({ data, onUpdate, onOpenGuide }: { data: CircuitData, onUpdate: 
               </div>
 
               <div className="flex items-center gap-3">
-                  {/* Big Play Button */}
-                  <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                  {/* Visualization Mode Toggle */}
+                  <div className="hidden md:flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700 mr-2">
+                      <button 
+                        onClick={() => setVizMode('voltage')}
+                        className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all ${vizMode === 'voltage' ? 'bg-white dark:bg-slate-700 text-cyan-600 dark:text-cyan-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+                        title="Visualize Voltage Levels"
+                      >
+                        <Activity size={14} /> Voltage
+                      </button>
+                      <button 
+                        onClick={() => setVizMode('current')}
+                        className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all ${vizMode === 'current' ? 'bg-white dark:bg-slate-700 text-amber-500 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+                        title="Visualize Current Flow"
+                      >
+                        <Waves size={14} /> Flow
+                      </button>
+                  </div>
+
+                  {/* Big Play Button - PRO STYLE */}
+                  <div className="flex items-center p-1">
                     <button 
-                        onClick={() => setIsSimulating(true)}
-                        className={`flex items-center gap-2 px-6 py-2 rounded-md font-bold text-sm transition-all ${isSimulating ? 'bg-slate-200 dark:bg-slate-700 text-slate-400 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-500 shadow-lg shadow-green-900/20'}`}
-                        disabled={isSimulating}
+                        onClick={() => setIsSimulating(!isSimulating)}
+                        className={`
+                            flex items-center gap-3 px-6 py-2 rounded-md font-bold text-sm transition-all shadow-lg border 
+                            ${isSimulating 
+                                ? 'bg-red-600 hover:bg-red-500 border-red-400 text-white shadow-red-900/30' 
+                                : 'bg-green-600 hover:bg-green-500 border-green-400 text-white shadow-green-900/30'}
+                        `}
                     >
-                        <Play size={18} fill="currentColor" />
-                        RUN
-                    </button>
-                    <button 
-                        onClick={() => setIsSimulating(false)}
-                        className={`flex items-center justify-center w-10 h-9 rounded-md ml-1 transition-all ${!isSimulating ? 'text-slate-300 cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-500 shadow-lg shadow-red-900/20'}`}
-                        disabled={!isSimulating}
-                    >
-                        <Square size={16} fill="currentColor" />
+                        {isSimulating ? <Square size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
+                        {isSimulating ? 'STOP SIMULATION' : 'RUN SIMULATION'}
                     </button>
                   </div>
                   
@@ -323,7 +366,7 @@ const Editor = ({ data, onUpdate, onOpenGuide }: { data: CircuitData, onUpdate: 
                   simulationResult={simulationResult}
                   onUpdate={onUpdate}
                   theme={theme}
-                  visualizationMode="voltage"
+                  visualizationMode={vizMode}
                   collaborators={collaborators}
                   onCursorMove={sendCursorMove}
               />
