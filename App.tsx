@@ -41,7 +41,9 @@ import {
   Signal,
   Triangle,
   ArrowRightLeft,
-  Repeat
+  Repeat,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 
@@ -57,6 +59,13 @@ const Sidebar = ({ onOpenPresets, onOpenGuide }: { onOpenPresets: () => void, on
   const { theme, toggleTheme } = useTheme();
   const isActive = (path: string) => location.pathname === path;
   
+  const linkClass = (active: boolean) => 
+    `flex items-center gap-3 px-4 py-3 rounded-lg transition-all font-medium ${
+      active 
+        ? 'bg-cyan-600 text-white shadow-md shadow-cyan-900/20' 
+        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+    }`;
+
   return (
     <div className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col h-screen hidden md:flex z-50 transition-colors duration-300">
       <div className="p-6 flex items-center gap-3 border-b border-slate-200 dark:border-slate-800">
@@ -66,64 +75,69 @@ const Sidebar = ({ onOpenPresets, onOpenGuide }: { onOpenPresets: () => void, on
         <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">CircuitMind</span>
       </div>
       
-      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-        <div className="mb-6">
-          <p className="px-4 text-xs font-semibold text-slate-500 dark:text-slate-500 uppercase mb-2 tracking-wider">Platform</p>
-          <Link to="/" className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive('/') ? 'bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-900/50' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'}`}>
-            <LayoutDashboard size={20} />
-            <span>Dashboard</span>
-          </Link>
-          <Link to="/editor" className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive('/editor') ? 'bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-900/50' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'}`}>
-            <Cpu size={20} />
-            <span>Editor</span>
-          </Link>
-          <Link to="/analytics" className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive('/analytics') ? 'bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-900/50' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'}`}>
-            <BarChart3 size={20} />
-            <span>Analytics</span>
-          </Link>
+      <nav className="flex-1 p-4 overflow-y-auto custom-scrollbar">
+        <div className="mb-8">
+          <p className="px-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase mb-3 tracking-wider">Platform</p>
+          <div className="space-y-1">
+            <Link to="/" className={linkClass(isActive('/'))}>
+              <LayoutDashboard size={20} />
+              <span>Dashboard</span>
+            </Link>
+            <Link to="/editor" className={linkClass(isActive('/editor'))}>
+              <Cpu size={20} />
+              <span>Editor</span>
+            </Link>
+            <Link to="/analytics" className={linkClass(isActive('/analytics'))}>
+              <BarChart3 size={20} />
+              <span>Analytics</span>
+            </Link>
+          </div>
         </div>
 
-        <div>
-          <p className="px-4 text-xs font-semibold text-slate-500 uppercase mb-2 tracking-wider">Learning Center</p>
-          <button 
-            onClick={onOpenPresets}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all text-left"
-          >
-            <BookOpen size={20} />
-            <span>Circuit Library</span>
-          </button>
-          <button 
-            onClick={onOpenGuide}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all text-left"
-          >
-            <GraduationCap size={20} />
-            <span>Interactive Guide</span>
-          </button>
+        <div className="mb-6">
+          <p className="px-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase mb-3 tracking-wider">Learning Center</p>
+          <div className="space-y-1">
+            <button 
+              onClick={onOpenPresets}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all text-left font-medium"
+            >
+              <BookOpen size={20} />
+              <span>Circuit Library</span>
+            </button>
+            <button 
+              onClick={onOpenGuide}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all text-left font-medium"
+            >
+              <GraduationCap size={20} />
+              <span>Interactive Guide</span>
+            </button>
+          </div>
         </div>
       </nav>
 
-      <div className="p-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
+      <div className="p-4 border-t border-slate-200 dark:border-slate-800 space-y-3 bg-slate-50 dark:bg-slate-950/30">
          <button 
             onClick={toggleTheme}
-            className="w-full flex items-center gap-2 px-4 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="w-full flex items-center justify-between px-4 py-2.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-cyan-500 dark:hover:border-cyan-500 transition-all shadow-sm"
          >
-            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-            <span className="text-sm font-medium">Switch to {theme === 'dark' ? 'Light' : 'Dark'}</span>
+            <span className="text-sm font-medium flex items-center gap-2">
+                {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+                {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+            </span>
          </button>
 
-        <div className="flex items-center gap-3 mb-4 px-2">
-          <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-700 dark:text-slate-200">
+        <div className="flex items-center gap-3 mt-4 px-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-xs font-bold text-white shadow-md">
             AE
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{CURRENT_USER.username}</p>
+            <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{CURRENT_USER.username}</p>
             <p className="text-xs text-slate-500 truncate">{CURRENT_USER.email}</p>
           </div>
+          <button className="text-slate-400 hover:text-red-500 transition-colors">
+              <LogOut size={16} />
+          </button>
         </div>
-        <button className="w-full flex items-center gap-2 px-4 py-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-colors">
-          <LogOut size={18} />
-          <span className="text-sm">Sign Out</span>
-        </button>
       </div>
     </div>
   );
@@ -236,6 +250,40 @@ const Analytics = () => {
   );
 };
 
+// Component Group Definition
+const COMPONENT_GROUPS = [
+    {
+        title: 'Essentials',
+        items: [
+            { type: 'source', icon: Battery, label: 'Battery' },
+            { type: 'ground', icon: Circle, label: 'Ground' },
+            { type: 'switch', icon: ToggleLeft, label: 'Switch' },
+        ]
+    },
+    {
+        title: 'Passives',
+        items: [
+            { type: 'resistor', icon: Box, label: 'Resistor' },
+            { type: 'capacitor', icon: Component, label: 'Capacitor' },
+        ]
+    },
+    {
+        title: 'Active',
+        items: [
+            { type: 'led', icon: Zap, label: 'LED' },
+            { type: 'transistor', icon: Triangle, label: 'NPN Transistor' },
+        ]
+    },
+    {
+        title: 'Logic & Amp',
+        items: [
+            { type: 'gate_and', icon: Cpu, label: 'AND Gate' },
+            { type: 'amplifier_half_duplex', icon: ArrowRightLeft, label: 'Half Duplex' },
+            { type: 'amplifier_full_duplex', icon: Repeat, label: 'Full Duplex' },
+        ]
+    }
+];
+
 // Editor Component
 const Editor = ({ data, onUpdate, onOpenGuide }: { data: CircuitData, onUpdate: (d: CircuitData) => void, onOpenGuide: () => void }) => {
   const [isSimulating, setIsSimulating] = useState(false);
@@ -243,6 +291,7 @@ const Editor = ({ data, onUpdate, onOpenGuide }: { data: CircuitData, onUpdate: 
   const [isAIPanelOpen, setIsAIPanelOpen] = useState(false);
   const [isCollabPanelOpen, setIsCollabPanelOpen] = useState(false);
   const { theme } = useTheme();
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   
   // Collaboration Hook
   const { collaborators, messages, sendMessage, sendCursorMove, isConnected } = useCollaboration('c1', CURRENT_USER.username, true);
@@ -260,98 +309,118 @@ const Editor = ({ data, onUpdate, onOpenGuide }: { data: CircuitData, onUpdate: 
     e.dataTransfer.setData('componentType', type);
   };
 
+  const toggleGroup = (title: string) => {
+      setCollapsedGroups(prev => ({...prev, [title]: !prev[title]}));
+  };
+
   return (
     <div className="flex h-full flex-col md:flex-row overflow-hidden bg-slate-50 dark:bg-slate-950 relative transition-colors duration-300">
        {/* Components Palette */}
-      <div className="w-full md:w-20 lg:w-24 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-row md:flex-col items-center py-4 gap-4 z-20 overflow-x-auto md:overflow-y-auto md:overflow-x-hidden shrink-0 shadow-sm">
-        {[
-            { type: 'source', icon: Battery, label: 'Battery' },
-            { type: 'resistor', icon: Box, label: 'Resistor' },
-            { type: 'led', icon: Zap, label: 'LED' },
-            { type: 'switch', icon: ToggleLeft, label: 'Switch' },
-            { type: 'capacitor', icon: Component, label: 'Capacitor' },
-            { type: 'ground', icon: Circle, label: 'Ground' },
-            { type: 'transistor', icon: Triangle, label: 'NPN' },
-            { type: 'gate_and', icon: Cpu, label: 'AND' },
-            // New Amplifiers
-            { type: 'amplifier_half_duplex', icon: ArrowRightLeft, label: 'Half Duplex' },
-            { type: 'amplifier_full_duplex', icon: Repeat, label: 'Full Duplex' },
-        ].map((item) => (
-            <div 
-                key={item.type}
-                draggable 
-                onDragStart={(e) => handleDragStart(e, item.type)}
-                className="flex flex-col items-center gap-1 group cursor-grab active:cursor-grabbing p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-w-[60px]"
-            >
-                <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-full group-hover:bg-cyan-100 dark:group-hover:bg-cyan-900/50 text-slate-600 dark:text-slate-400 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors border border-slate-200 dark:border-slate-700 group-hover:border-cyan-500 dark:group-hover:border-cyan-700">
-                    <item.icon size={24} />
+      <div className="w-full md:w-60 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col z-20 shrink-0 shadow-lg transition-all">
+        <div className="p-4 border-b border-slate-200 dark:border-slate-800">
+            <h2 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <Component size={18} className="text-cyan-600" /> Components
+            </h2>
+        </div>
+        <div className="flex-1 overflow-y-auto p-2 custom-scrollbar space-y-1">
+            {COMPONENT_GROUPS.map((group) => (
+                <div key={group.title} className="mb-2">
+                    <button 
+                        onClick={() => toggleGroup(group.title)}
+                        className="w-full flex items-center justify-between px-2 py-1.5 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors mb-1"
+                    >
+                        {group.title}
+                        {collapsedGroups[group.title] ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+                    </button>
+                    
+                    {!collapsedGroups[group.title] && (
+                        <div className="grid grid-cols-2 gap-2 px-1">
+                            {group.items.map((item) => (
+                                <div 
+                                    key={item.type}
+                                    draggable 
+                                    onDragStart={(e) => handleDragStart(e, item.type)}
+                                    className="flex flex-col items-center gap-2 cursor-grab active:cursor-grabbing p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 hover:border-cyan-500 dark:hover:border-cyan-600 hover:shadow-md hover:bg-white dark:hover:bg-slate-800 transition-all group"
+                                >
+                                    <div className="text-slate-600 dark:text-slate-400 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
+                                        <item.icon size={24} />
+                                    </div>
+                                    <span className="text-xs text-slate-600 dark:text-slate-300 font-medium text-center leading-tight w-full truncate">
+                                        {item.label}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white font-medium text-center leading-tight">{item.label}</span>
-            </div>
-        ))}
+            ))}
+        </div>
       </div>
 
       {/* Main Editor Area */}
       <div className="flex-1 flex flex-col relative overflow-hidden">
         {/* Toolbar */}
-        <div className="h-14 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 shrink-0 z-20 shadow-sm transition-colors duration-300">
-          <div className="flex items-center gap-2">
-            <h2 className="font-bold text-slate-700 dark:text-slate-200 mr-4 hidden sm:block">Untitled Circuit</h2>
+        <div className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 shrink-0 z-20 shadow-sm transition-colors duration-300">
+          <div className="flex items-center gap-4">
+            <div className="flex flex-col">
+                <h2 className="font-bold text-slate-800 dark:text-white leading-tight">Untitled Circuit</h2>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">Draft • Last edited just now</span>
+            </div>
+            <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 mx-2"></div>
             <button 
                 onClick={() => setIsSimulating(!isSimulating)}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-md font-medium transition-all ${
+                className={`flex items-center gap-2 px-6 py-2 rounded-lg font-bold shadow-sm transition-all active:scale-95 ${
                     isSimulating 
-                    ? 'bg-red-500/10 text-red-500 dark:text-red-400 border border-red-500/50 hover:bg-red-500/20' 
-                    : 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/50 hover:bg-green-500/20'
+                    ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100' 
+                    : 'bg-green-600 text-white hover:bg-green-500 shadow-green-900/20'
                 }`}
             >
-                {isSimulating ? <Square size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
-                {isSimulating ? 'Stop' : 'Simulate'}
+                {isSimulating ? <Square size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}
+                {isSimulating ? 'Stop Simulation' : 'Simulate Circuit'}
             </button>
             <button 
               onClick={() => {
                   setIsSimulating(false);
                   onUpdate({ nodes: [], connections: [] });
               }}
-              className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors"
+              className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
               title="Clear Canvas"
             >
-               <RotateCcw size={18} />
+               <RotateCcw size={20} />
             </button>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
              <button 
                 onClick={() => setIsCollabPanelOpen(!isCollabPanelOpen)}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-md border text-sm transition-all ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
                     isCollabPanelOpen 
-                    ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border-purple-300 dark:border-purple-700' 
-                    : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700'
+                    ? 'bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800' 
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
                 }`}
               >
-                <Users size={16} />
-                <span className="hidden sm:inline">Collab</span>
-                <span className="flex h-2 w-2 relative">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                </span>
+                <div className="relative">
+                    <Users size={18} />
+                    <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-green-500 border-2 border-white dark:border-slate-800"></span>
+                </div>
+                <span>Collaborate</span>
              </button>
              <button 
                 onClick={onOpenGuide}
-                className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-md border border-slate-200 dark:border-slate-700 text-sm transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg border border-slate-200 dark:border-slate-700 text-sm font-medium transition-colors"
               >
-                <GraduationCap size={16} />
-                <span className="hidden sm:inline">Guide</span>
+                <GraduationCap size={18} />
+                <span>Guide</span>
              </button>
              <button 
                 onClick={() => setIsAIPanelOpen(!isAIPanelOpen)}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-md border text-sm transition-all ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-all shadow-sm ${
                     isAIPanelOpen 
-                    ? 'bg-cyan-600 text-white border-cyan-500' 
-                    : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-cyan-600 dark:text-cyan-400 border-slate-200 dark:border-slate-700'
+                    ? 'bg-cyan-600 text-white border-cyan-500 shadow-cyan-900/20' 
+                    : 'bg-white dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 border-slate-200 dark:border-slate-700 hover:border-cyan-500 dark:hover:border-cyan-500'
                 }`}
               >
-                <Sparkles size={16} />
-                <span className="hidden sm:inline">AI Assist</span>
+                <Sparkles size={18} />
+                <span>AI Assistant</span>
              </button>
           </div>
         </div>

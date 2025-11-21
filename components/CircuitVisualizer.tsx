@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { CircuitData, CircuitNode, CircuitConnection, Collaborator } from '../types';
-import { Battery, Zap, Box, Component, Cpu, Triangle, Circle, ToggleLeft, ToggleRight, Trash2, MousePointer2, Move, Activity } from 'lucide-react';
+import { Battery, Zap, Box, Component, Cpu, Triangle, Circle, ToggleLeft, ToggleRight, Trash2, MousePointer2, Move, Activity, CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface Props {
   data: CircuitData;
@@ -405,10 +405,7 @@ const CircuitVisualizer: React.FC<Props> = ({
       case 'amplifier_half_duplex':
         return (
             <svg viewBox="0 0 24 24" className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2">
-                {/* Half Duplex: Side-by-side triangles representing shared bidirectional path */}
-                {/* Left: Amp pointing Right */}
                 <path d="M2 7 L2 17 L10 12 Z" fill="currentColor" fillOpacity="0.2" />
-                {/* Right: Amp pointing Left */}
                 <path d="M22 7 L22 17 L14 12 Z" fill="currentColor" fillOpacity="0.2" />
                 <path d="M2 7 L2 17 L10 12 Z" />
                 <path d="M22 7 L22 17 L14 12 Z" />
@@ -417,13 +414,9 @@ const CircuitVisualizer: React.FC<Props> = ({
       case 'amplifier_full_duplex':
         return (
             <svg viewBox="0 0 24 24" className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2">
-                {/* Full Duplex: Stacked triangles representing simultaneous bidirectional paths */}
-                {/* Top Path: Left to Right */}
                 <path d="M2 6 L2 12 L10 9 Z" fill="currentColor" fillOpacity="0.2" />
                 <line x1="10" y1="9" x2="22" y2="9" strokeWidth="1.5"/>
                 <path d="M2 6 L2 12 L10 9 Z" />
-                
-                {/* Bottom Path: Right to Left */}
                 <path d="M22 18 L22 12 L14 15 Z" fill="currentColor" fillOpacity="0.2" />
                 <line x1="14" y1="15" x2="2" y2="15" strokeWidth="1.5"/>
                 <path d="M22 18 L22 12 L14 15 Z" />
@@ -563,7 +556,7 @@ const CircuitVisualizer: React.FC<Props> = ({
             );
         })}
 
-        {/* REMOTE CURSORS OVERLAY */}
+        {/* REMOTE CURSORS & TAGS OVERLAY */}
         <div className="absolute inset-0 pointer-events-none z-30 overflow-visible">
             {collaborators && Array.from(collaborators.values()).map((collab: Collaborator) => (
                  <div 
@@ -576,36 +569,55 @@ const CircuitVisualizer: React.FC<Props> = ({
                         transition: 'transform 0.1s linear'
                     }}
                  >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: collab.color }}>
+                    {/* Cursor Arrow */}
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: collab.color, filter: 'drop-shadow(1px 1px 2px rgba(0,0,0,0.3))' }}>
                         <path d="M3 3L10.07 19.97L12.58 12.58L19.97 10.07L3 3Z" fill="currentColor" stroke="white" strokeWidth="2" strokeLinejoin="round"/>
                     </svg>
-                    <div 
-                        className="absolute left-4 top-4 px-2 py-1 rounded text-[10px] font-bold text-white shadow-sm whitespace-nowrap"
-                        style={{ backgroundColor: collab.color }}
-                    >
-                        {collab.username}
+                    
+                    {/* Pill Tag */}
+                    <div className="absolute left-4 top-4 flex items-center gap-2 px-2 py-1 bg-white/90 dark:bg-slate-800/90 rounded-full shadow-lg border border-slate-200 dark:border-slate-700 backdrop-blur-sm">
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: collab.color }} />
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap">{collab.username}</span>
                     </div>
                  </div>
             ))}
         </div>
       </div>
 
-      {/* HUD / Controls Overlay */}
-      <div className="absolute bottom-4 left-4 flex items-center gap-2 pointer-events-none z-20">
-          <div className={`backdrop-blur px-3 py-1.5 rounded-lg border text-xs font-mono shadow-xl ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-cyan-400' : 'bg-white/80 border-slate-200 text-cyan-700'}`}>
-             ZOOM: {Math.round(view.zoom * 100)}%
-          </div>
-          <div className={`backdrop-blur px-3 py-1.5 rounded-lg border text-xs font-mono shadow-xl ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-white/80 border-slate-200 text-slate-500'}`}>
-             X: {Math.round(mousePos.x)} Y: {Math.round(mousePos.y)}
+      {/* HUD / Footer Stats */}
+      <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between pointer-events-none z-20">
+          {/* Zoom & Coords */}
+          <div className="flex items-center gap-3">
+             <div className={`backdrop-blur px-4 py-2 rounded-full border flex items-center gap-3 font-mono text-sm shadow-lg ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-300' : 'bg-white/80 border-slate-200 text-slate-600'}`}>
+                 <span className="font-bold text-cyan-500">Z: {Math.round(view.zoom * 100)}%</span>
+                 <span className="w-px h-4 bg-slate-600/30"></span>
+                 <span>X: {Math.round(mousePos.x).toString().padStart(4, ' ')}</span>
+                 <span>Y: {Math.round(mousePos.y).toString().padStart(4, ' ')}</span>
+             </div>
+             
+             {/* Status Indicator */}
+             <div className={`backdrop-blur px-4 py-2 rounded-full border flex items-center gap-2 font-medium text-sm shadow-lg ${
+                 isSimulating 
+                    ? 'bg-green-500/10 border-green-500/30 text-green-500' 
+                    : (theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-white/80 border-slate-200 text-slate-500')
+             }`}>
+                 {isSimulating ? <Activity size={14} className="animate-pulse" /> : <CheckCircle2 size={14} />}
+                 {isSimulating ? 'Running...' : 'Ready'}
+             </div>
           </div>
       </div>
 
+      {/* Instruction Overlay (Top Center, Transient feel) */}
       {!isSimulating && (
-        <div className={`absolute top-4 right-4 backdrop-blur p-3 rounded-lg border shadow-2xl pointer-events-none z-20 ${theme === 'dark' ? 'bg-slate-900/90 border-slate-700' : 'bg-white/90 border-slate-200'}`}>
-            <div className={`text-xs space-y-1 font-medium ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
-                <div className="flex items-center gap-2"><MousePointer2 size={12} /> <span>Alt + Click to Wire</span></div>
-                <div className="flex items-center gap-2"><Move size={12} /> <span>Space + Drag to Pan</span></div>
-            </div>
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 flex gap-3 pointer-events-none z-20 opacity-80 hover:opacity-100 transition-opacity">
+             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border shadow-sm text-xs font-medium backdrop-blur-md ${theme === 'dark' ? 'bg-slate-800/50 border-slate-700 text-slate-300' : 'bg-white/50 border-slate-200 text-slate-600'}`}>
+                <div className="bg-slate-200 dark:bg-slate-700 px-1.5 rounded text-[10px]">Alt</div>
+                <span>+ Click to Wire</span>
+             </div>
+             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border shadow-sm text-xs font-medium backdrop-blur-md ${theme === 'dark' ? 'bg-slate-800/50 border-slate-700 text-slate-300' : 'bg-white/50 border-slate-200 text-slate-600'}`}>
+                <div className="bg-slate-200 dark:bg-slate-700 px-1.5 rounded text-[10px]">Space</div>
+                <span>+ Drag to Move</span>
+             </div>
         </div>
       )}
     </div>
