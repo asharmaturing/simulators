@@ -8,11 +8,12 @@ interface Props {
   isSimulating: boolean;
   poweredNodes: Set<string>;
   onUpdate: (data: CircuitData) => void;
+  theme?: 'dark' | 'light';
 }
 
 const GRID_SIZE = 20;
 
-const CircuitVisualizer: React.FC<Props> = ({ data, isSimulating, poweredNodes, onUpdate }) => {
+const CircuitVisualizer: React.FC<Props> = ({ data, isSimulating, poweredNodes, onUpdate, theme = 'dark' }) => {
   // View State
   const [view, setView] = useState({ x: 0, y: 0, zoom: 1 });
   const [isPanning, setIsPanning] = useState(false);
@@ -183,10 +184,6 @@ const CircuitVisualizer: React.FC<Props> = ({ data, isSimulating, poweredNodes, 
 
   // --- Render Helpers ---
 
-  // Smart Wire Routing Algorithm
-  // 1. Determines dynamic start/end ports (Top, Right, Bottom, Left) based on relative positions
-  // 2. Adds jitter to overlapping wires to prevent visual merging
-  // 3. Uses Bezier curves with control points extending perpendicular to ports
   const getSmartWirePath = (source: CircuitNode, target: CircuitNode, connId: string) => {
     const NODE_SIZE = 48;
     const HALF_SIZE = NODE_SIZE / 2;
@@ -200,7 +197,6 @@ const CircuitVisualizer: React.FC<Props> = ({ data, isSimulating, poweredNodes, 
     const dx = tx - sx;
     const dy = ty - sy;
     
-    // Port definitions relative to center
     const ports = {
         top: { x: 0, y: -HALF_SIZE, dx: 0, dy: -1 },
         right: { x: HALF_SIZE, y: 0, dx: 1, dy: 0 },
@@ -208,17 +204,13 @@ const CircuitVisualizer: React.FC<Props> = ({ data, isSimulating, poweredNodes, 
         left: { x: -HALF_SIZE, y: 0, dx: -1, dy: 0 }
     };
 
-    // Determine optimal ports
-    // Heuristic: Choose ports that face each other to minimize path length and crossing
     let sourcePortType: keyof typeof ports = 'right';
     let targetPortType: keyof typeof ports = 'left';
 
     if (Math.abs(dx) > Math.abs(dy)) {
-         // Horizontal dominant
          if (dx > 0) { sourcePortType = 'right'; targetPortType = 'left'; }
          else { sourcePortType = 'left'; targetPortType = 'right'; }
     } else {
-         // Vertical dominant
          if (dy > 0) { sourcePortType = 'bottom'; targetPortType = 'top'; }
          else { sourcePortType = 'top'; targetPortType = 'bottom'; }
     }
@@ -231,19 +223,13 @@ const CircuitVisualizer: React.FC<Props> = ({ data, isSimulating, poweredNodes, 
     const endX = tx + tPort.x;
     const endY = ty + tPort.y;
 
-    // Calculate Control Points
     const dist = Math.hypot(endX - startX, endY - startY);
-    const cpLen = Math.min(dist * 0.5, 150); // Cap curvature
+    const cpLen = Math.min(dist * 0.5, 150);
 
-    // Add jitter to separate wires that might otherwise perfectly overlap
-    // Simple hash from ID to make it deterministic but unique per connection
     let hash = 0;
     for (let i = 0; i < connId.length; i++) hash = ((hash << 5) - hash) + connId.charCodeAt(i);
-    // Map hash to range [-10, 10] pixels
     const jitter = (Math.abs(hash) % 20) - 10;
 
-    // Apply jitter perpendicular to the port direction
-    // If horizontal (dx != 0), jitter Y. If vertical (dy != 0), jitter X.
     const cp1x = startX + (sPort.dx * cpLen) + (sPort.dy !== 0 ? jitter : 0);
     const cp1y = startY + (sPort.dy * cpLen) + (sPort.dx !== 0 ? jitter : 0);
     
@@ -253,7 +239,6 @@ const CircuitVisualizer: React.FC<Props> = ({ data, isSimulating, poweredNodes, 
     return `M ${startX} ${startY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${endX} ${endY}`;
   };
 
-  // Temp wire for dragging state
   const getTempWirePath = (source: CircuitNode, mouseX: number, mouseY: number) => {
      const NODE_SIZE = 48;
      const sx = source.x + NODE_SIZE/2;
@@ -262,7 +247,6 @@ const CircuitVisualizer: React.FC<Props> = ({ data, isSimulating, poweredNodes, 
      const dx = mouseX - sx;
      const dy = mouseY - sy;
      
-     // Simple directionality
      const dirX = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : -1) : 0;
      const dirY = Math.abs(dx) <= Math.abs(dy) ? (dy > 0 ? 1 : -1) : 0;
 
@@ -277,24 +261,31 @@ const CircuitVisualizer: React.FC<Props> = ({ data, isSimulating, poweredNodes, 
 
   const getNodeStyles = (node: CircuitNode, isPowered: boolean) => {
       const baseClass = "transition-all duration-300 shadow-lg";
-      const activeGlow = isSimulating && isPowered ? "ring-2 ring-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.6)]" : "border border-slate-700 hover:border-cyan-500";
       
-      let bgClass = "bg-slate-900";
-      let iconColor = "text-slate-400";
+      let activeGlow = "";
+      if (theme === 'dark') {
+         activeGlow = isSimulating && isPowered ? "ring-2 ring-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.6)]" : "border border-slate-700 hover:border-cyan-500";
+      } else {
+         activeGlow = isSimulating && isPowered ? "ring-2 ring-cyan-600 shadow-[0_0_15px_rgba(8,145,178,0.4)]" : "border border-slate-300 hover:border-cyan-600";
+      }
+
+      let bgClass = theme === 'dark' ? "bg-slate-900" : "bg-white";
+      let iconColor = "";
 
       if (isSimulating && isPowered) {
          if (node.type === 'led') iconColor = "text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,1)]";
-         else if (node.type === 'source') iconColor = "text-green-400";
-         else iconColor = "text-cyan-300";
+         else if (node.type === 'source') iconColor = "text-green-500";
+         else iconColor = theme === 'dark' ? "text-cyan-300" : "text-cyan-600";
       } else {
+         // Unpowered states
          switch (node.type) {
-           case 'source': iconColor = "text-green-600"; break;
-           case 'led': iconColor = "text-red-900"; break;
-           case 'resistor': iconColor = "text-orange-700"; break;
-           case 'capacitor': iconColor = "text-yellow-700"; break;
-           case 'ground': iconColor = "text-slate-600"; break;
-           case 'switch': iconColor = "text-blue-600"; break;
-           default: iconColor = "text-slate-500";
+           case 'source': iconColor = theme === 'dark' ? "text-green-600" : "text-green-700"; break;
+           case 'led': iconColor = theme === 'dark' ? "text-red-900" : "text-red-300"; break; // Dim red when off
+           case 'resistor': iconColor = theme === 'dark' ? "text-orange-700" : "text-orange-600"; break;
+           case 'capacitor': iconColor = theme === 'dark' ? "text-yellow-700" : "text-yellow-600"; break;
+           case 'ground': iconColor = theme === 'dark' ? "text-slate-600" : "text-slate-500"; break;
+           case 'switch': iconColor = theme === 'dark' ? "text-blue-600" : "text-blue-600"; break;
+           default: iconColor = theme === 'dark' ? "text-slate-500" : "text-slate-400";
          }
       }
       
@@ -318,10 +309,16 @@ const CircuitVisualizer: React.FC<Props> = ({ data, isSimulating, poweredNodes, 
     }
   };
 
+  // Theme colors for rendering SVG
+  const gridDotColor = theme === 'dark' ? '#475569' : '#cbd5e1'; // slate-600 vs slate-300
+  const wireStrokeBase = theme === 'dark' ? '#475569' : '#94a3b8'; // slate-600 vs slate-400
+  const wireStrokeActive = theme === 'dark' ? '#22d3ee' : '#0891b2'; // cyan-400 vs cyan-600
+  const wireShadowActive = theme === 'dark' ? 'drop-shadow(0 0 4px #22d3ee)' : 'drop-shadow(0 0 4px rgba(8, 145, 178, 0.5))';
+
   return (
     <div 
         ref={containerRef}
-        className={`relative w-full h-full bg-slate-950 overflow-hidden select-none ${isPanning ? 'cursor-grabbing' : 'cursor-default'}`}
+        className={`relative w-full h-full overflow-hidden select-none ${isPanning ? 'cursor-grabbing' : 'cursor-default'} ${theme === 'dark' ? 'bg-slate-950' : 'bg-slate-50'}`}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         onMouseMove={handleMouseMove}
@@ -339,15 +336,15 @@ const CircuitVisualizer: React.FC<Props> = ({ data, isSimulating, poweredNodes, 
         }}
         className="relative transition-transform duration-75 ease-out"
       >
-        {/* Background Grid (Infinite feel) */}
+        {/* Background Grid */}
         <div className="absolute -inset-[5000px] opacity-20 pointer-events-none z-0" 
              style={{ 
-               backgroundImage: 'radial-gradient(#475569 1.5px, transparent 1.5px)', 
+               backgroundImage: `radial-gradient(${gridDotColor} 1.5px, transparent 1.5px)`, 
                backgroundSize: `${GRID_SIZE}px ${GRID_SIZE}px` 
              }}>
         </div>
         
-        {/* Wires Layer - Simplified to standard full overlay with visible overflow */}
+        {/* Wires Layer */}
         <svg className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-visible z-0">
           {data.connections.map((conn) => {
             const source = data.nodes.find(n => n.id === conn.sourceId);
@@ -359,24 +356,24 @@ const CircuitVisualizer: React.FC<Props> = ({ data, isSimulating, poweredNodes, 
             
             return (
               <g key={conn.id}>
-                 {/* Shadow for depth */}
+                 {/* Shadow/Outline for depth/visibility */}
                  <path
                     d={pathD}
-                    stroke="#0f172a"
-                    strokeWidth={isWirePowered ? 6 : 4}
+                    stroke={theme === 'dark' ? '#0f172a' : '#ffffff'}
+                    strokeWidth={isWirePowered ? 6 : 5}
                     fill="none"
                     strokeLinecap="round"
-                    opacity="0.5"
+                    opacity={theme === 'dark' ? 0.5 : 0.8}
                  />
                  {/* Main Wire */}
                  <path
                     d={pathD}
-                    stroke={isWirePowered ? "#22d3ee" : "#475569"}
+                    stroke={isWirePowered ? wireStrokeActive : wireStrokeBase}
                     strokeWidth={isWirePowered ? 3 : 2}
                     fill="none"
                     strokeLinecap="round"
                     className="transition-all duration-300"
-                    style={{ filter: isWirePowered ? 'drop-shadow(0 0 4px #22d3ee)' : 'none' }}
+                    style={{ filter: isWirePowered ? wireShadowActive : 'none' }}
                   />
               </g>
             );
@@ -389,7 +386,7 @@ const CircuitVisualizer: React.FC<Props> = ({ data, isSimulating, poweredNodes, 
                return (
                   <path
                       d={getTempWirePath(startNode, mousePos.x, mousePos.y)}
-                      stroke="#facc15"
+                      stroke={theme === 'dark' ? "#facc15" : "#eab308"}
                       strokeWidth="2"
                       strokeDasharray="5,5"
                       fill="none"
@@ -419,23 +416,23 @@ const CircuitVisualizer: React.FC<Props> = ({ data, isSimulating, poweredNodes, 
                 }}
             >
                 {/* Connection Points Hint */}
-                <div className="absolute inset-0 rounded-full border-2 border-transparent group-hover:border-slate-600 border-dashed scale-125 pointer-events-none transition-all" />
+                <div className={`absolute inset-0 rounded-full border-2 border-transparent ${theme === 'dark' ? 'group-hover:border-slate-600' : 'group-hover:border-slate-300'} border-dashed scale-125 pointer-events-none transition-all`} />
 
                 <div className={`relative rounded-full p-2 w-12 h-12 flex items-center justify-center ${styles.container}`}>
                     {getNodeIcon(node, styles.icon)}
                     
                     {/* Delete Action (Hover) */}
                     {!isSimulating && (
-                        <div className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 scale-75 transition-all cursor-pointer bg-red-900 rounded-full p-1 border border-red-700 hover:bg-red-700">
+                        <div className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 scale-75 transition-all cursor-pointer bg-red-600 rounded-full p-1 border border-red-400 hover:bg-red-500 shadow-sm">
                             <Trash2 size={12} className="text-white" />
                         </div>
                     )}
                 </div>
 
                 {/* Professional Label */}
-                <div className="absolute -bottom-8 bg-slate-900/90 backdrop-blur px-2 py-1 rounded text-[10px] font-mono text-slate-300 border border-slate-700 whitespace-nowrap shadow-xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                    <span className="font-bold text-white">{node.label}</span>
-                    {node.value && <span className="text-cyan-400 ml-1">| {node.value}</span>}
+                <div className={`absolute -bottom-8 ${theme === 'dark' ? 'bg-slate-900/90 text-slate-300 border-slate-700' : 'bg-white/90 text-slate-700 border-slate-200'} backdrop-blur px-2 py-1 rounded text-[10px] font-mono border whitespace-nowrap shadow-xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-20`}>
+                    <span className={`font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{node.label}</span>
+                    {node.value && <span className={`${theme === 'dark' ? 'text-cyan-400' : 'text-cyan-600'} ml-1`}>| {node.value}</span>}
                 </div>
             </div>
             );
@@ -444,17 +441,17 @@ const CircuitVisualizer: React.FC<Props> = ({ data, isSimulating, poweredNodes, 
 
       {/* HUD / Controls Overlay */}
       <div className="absolute bottom-4 left-4 flex items-center gap-2 pointer-events-none z-20">
-          <div className="bg-slate-900/80 backdrop-blur px-3 py-1.5 rounded-lg border border-slate-700 text-xs font-mono text-cyan-400 shadow-xl">
+          <div className={`backdrop-blur px-3 py-1.5 rounded-lg border text-xs font-mono shadow-xl ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-cyan-400' : 'bg-white/80 border-slate-200 text-cyan-700'}`}>
              ZOOM: {Math.round(view.zoom * 100)}%
           </div>
-          <div className="bg-slate-900/80 backdrop-blur px-3 py-1.5 rounded-lg border border-slate-700 text-xs font-mono text-slate-400 shadow-xl">
+          <div className={`backdrop-blur px-3 py-1.5 rounded-lg border text-xs font-mono shadow-xl ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-white/80 border-slate-200 text-slate-500'}`}>
              X: {Math.round(mousePos.x)} Y: {Math.round(mousePos.y)}
           </div>
       </div>
 
       {!isSimulating && (
-        <div className="absolute top-4 right-4 bg-slate-900/90 backdrop-blur p-3 rounded-lg border border-slate-700 shadow-2xl pointer-events-none z-20">
-            <div className="text-xs text-slate-400 space-y-1 font-medium">
+        <div className={`absolute top-4 right-4 backdrop-blur p-3 rounded-lg border shadow-2xl pointer-events-none z-20 ${theme === 'dark' ? 'bg-slate-900/90 border-slate-700' : 'bg-white/90 border-slate-200'}`}>
+            <div className={`text-xs space-y-1 font-medium ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
                 <div className="flex items-center gap-2"><MousePointer2 size={12} /> <span>Alt + Click to Wire</span></div>
                 <div className="flex items-center gap-2"><Move size={12} /> <span>Space + Drag to Pan</span></div>
             </div>

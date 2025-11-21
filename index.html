@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
+        darkMode: 'class',
         theme: {
           extend: {
             colors: {
@@ -30,9 +31,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
       body {
+        /* Default to dark mode colors to match initial load, JS will toggle */
         background-color: #0f172a;
         color: #e2e8f0;
         font-family: 'Inter', sans-serif;
+        transition: background-color 0.3s, color 0.3s;
+      }
+      /* Light mode overrides when dark class is missing from html */
+      html:not(.dark) body {
+        background-color: #f8fafc;
+        color: #0f172a;
       }
       .scrollbar-hide::-webkit-scrollbar {
           display: none;
