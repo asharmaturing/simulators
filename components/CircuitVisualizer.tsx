@@ -59,31 +59,64 @@ const CircuitVisualizer: React.FC<Props> = ({
         setVerdict(null);
         return;
     }
+
+    // 1. Check for Simulation Errors (NaN/Infinity usually means Singular Matrix/Short Circuit)
+    let maxCurrent = 0;
+    for (const i of simulationResult.componentCurrents.values()) {
+        if (!Number.isFinite(i) || Number.isNaN(i)) {
+            setVerdict({ state: 'danger', message: 'CRITICAL ERROR', details: 'Simulation Unstable' });
+            return;
+        }
+        if (Math.abs(i) > maxCurrent) maxCurrent = Math.abs(i);
+    }
+
+    // 2. Short Circuit Detection (> 3A for typical 9V/5V logic is massive)
+    if (maxCurrent > 3.0) {
+        setVerdict({ state: 'danger', message: 'SHORT CIRCUIT', details: 'Current exceeds safe limits (>3A)' });
+        return;
+    }
+
+    // 3. Component Overheating
     for (const [id, power] of simulationResult.componentPower.entries()) {
         if (power > MAX_SAFE_POWER) {
             const node = data.nodes.find(n => n.id === id);
+            // Ignore sources/ground/switches for basic power limits unless specifically modeled
             if (node && node.type !== 'source' && node.type !== 'ground' && node.type !== 'switch') {
                 setVerdict({
                     state: 'danger',
-                    message: 'CIRCUIT FAILURE',
-                    details: `${node.label} is overheating (${(power*1000).toFixed(0)}mW)`
+                    message: 'OVERHEATING',
+                    details: `${node.label} is dissipating ${(power*1000).toFixed(0)}mW`
                 });
                 return;
             }
         }
     }
-    let successFound = false;
+
+    // 4. Success States
+    // Check for active LEDs
+    let activeLed = false;
     for (const [id, current] of simulationResult.componentCurrents.entries()) {
         const node = data.nodes.find(n => n.id === id);
         if (node?.type === 'led' && Math.abs(current) > 0.005) {
-            setVerdict({ state: 'success', message: 'CIRCUIT FUNCTIONAL', details: `${node.label} is active` });
-            successFound = true;
+            activeLed = true;
             break;
         }
     }
-    if (!successFound) {
-        setVerdict({ state: 'neutral', message: 'SIMULATING...', details: 'Analyzing flow...' });
+
+    if (activeLed) {
+        setVerdict({ state: 'success', message: 'OPERATIONAL', details: 'LED Active' });
+        return;
     }
+
+    // Check for general safe power flow
+    let totalPower = 0;
+    simulationResult.componentPower.forEach(p => totalPower += p);
+    if (totalPower > 0.001) {
+         setVerdict({ state: 'success', message: 'CIRCUIT ACTIVE', details: 'Stable power flow detected' });
+         return;
+    }
+
+    setVerdict({ state: 'neutral', message: 'READY', details: 'Circuit connected, no load' });
   }, [isSimulating, simulationResult, data.nodes]);
 
   const toWorld = useCallback((clientX: number, clientY: number) => {
@@ -199,7 +232,7 @@ const CircuitVisualizer: React.FC<Props> = ({
       const hasCurrent = isSimulating && current > 1e-6;
       
       let color = theme === 'dark' ? '#475569' : '#cbd5e1';
-      let width = 2;
+      let width = 3;
       let animSpeed = 0;
       let isFlowing = false;
 
@@ -216,8 +249,8 @@ const CircuitVisualizer: React.FC<Props> = ({
           } else {
               if (hasCurrent) {
                  color = '#f8fafc'; // White dots
-                 width = Math.min(8, Math.max(3, current * 100));
-                 const speedFactor = Math.max(0.2, Math.min(5, current * 100)); 
+                 width = Math.min(6, Math.max(3, current * 50));
+                 const speedFactor = Math.max(0.5, Math.min(10, current * 200)); 
                  animSpeed = 1.0 / speedFactor; 
                  isFlowing = true;
               }
@@ -226,7 +259,6 @@ const CircuitVisualizer: React.FC<Props> = ({
       return { color, width, animSpeed, isFlowing };
   };
 
-  // Pro Icons Implementation
   const getNodeIcon = (node: CircuitNode, className: string) => {
     const size = 36; 
     const props = { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.5, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, className };
@@ -237,7 +269,7 @@ const CircuitVisualizer: React.FC<Props> = ({
       case 'resistor': return <svg {...props}><path d="M2 12H6L8 6L12 18L16 6L18 12H22" /></svg>;
       case 'capacitor': return <svg {...props}><path d="M2 12H10" /><path d="M14 12H22" /><path d="M10 6V18" strokeWidth="2" /><path d="M14 6V18" strokeWidth="2" /></svg>;
       case 'inductor': return <svg {...props}><path d="M2 12H5C5 12 5 5 9 5C13 5 13 12 13 12C13 12 13 5 17 5C21 5 21 12 21 12H22" /></svg>;
-      case 'led': return <svg {...props}><path d="M2 12H7" /><path d="M17 12H22" /><path d="M7 7L17 12L7 17V7Z" fill={isSimulating && (simulationResult?.componentCurrents.get(node.id)||0)>0.001 ? "currentColor" : "transparent"} /><path d="M17 7V17" /><path d="M15 5L18 2" /><path d="M18 2L16 2" /><path d="M18 2L18 4" /></svg>;
+      case 'led': return <svg {...props}><path d="M2 12H7" /><path d="M17 12H22" /><path d="M7 7L17 12L7 17V7Z" fill={isSimulating && (simulationResult?.componentCurrents.get(node.id)||0)>0.005 ? "currentColor" : "transparent"} /><path d="M17 7V17" /><path d="M15 5L18 2" /><path d="M18 2L16 2" /><path d="M18 2L18 4" /></svg>;
       case 'switch': return <svg {...props}><circle cx="3" cy="12" r="2" /><circle cx="21" cy="12" r="2" /><path d={node.value === 'closed' ? "M5 12H19" : "M5 12L19 6"} /></svg>;
       case 'transistor': return <svg {...props}><circle cx="12" cy="12" r="10" /><path d="M2 12H8" /><path d="M8 6V18" strokeWidth="2" /><path d="M8 10L16 4" /><path d="M8 14L16 20" /><path d="M16 20L13 19.5" /></svg>;
       
@@ -265,12 +297,12 @@ const CircuitVisualizer: React.FC<Props> = ({
     >
       {/* Verdict Banner */}
       {verdict && (
-         <div className={`absolute top-6 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 animate-in slide-in-from-top-5 duration-300 border backdrop-blur-md ${
-             verdict.state === 'danger' ? 'bg-red-500/90 border-red-400 text-white' : 
-             verdict.state === 'success' ? 'bg-green-500/90 border-green-400 text-white' : 
+         <div className={`absolute top-6 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 animate-in slide-in-from-top-5 duration-300 border backdrop-blur-md transition-colors ${
+             verdict.state === 'danger' ? 'bg-red-500/90 border-red-400 text-white shadow-red-500/20' : 
+             verdict.state === 'success' ? 'bg-green-500/90 border-green-400 text-white shadow-green-500/20' : 
              'bg-slate-800/90 border-slate-600 text-white'
          }`}>
-             {verdict.state === 'danger' ? <Flame size={20} className="animate-pulse" /> : verdict.state === 'success' ? <CheckCircle2 size={20} /> : <Activity size={20} className="animate-spin" />}
+             {verdict.state === 'danger' ? <Flame size={24} className="animate-pulse" /> : verdict.state === 'success' ? <CheckCircle2 size={24} /> : <Activity size={24} className="animate-spin" />}
              <div>
                  <h3 className="font-bold text-sm tracking-wider uppercase">{verdict.message}</h3>
                  {verdict.details && <p className="text-xs opacity-90 font-mono">{verdict.details}</p>}
@@ -293,7 +325,7 @@ const CircuitVisualizer: React.FC<Props> = ({
         <svg className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-visible">
           <defs>
              <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-               <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+               <feGaussianBlur stdDeviation="3" result="coloredBlur" />
                <feMerge><feMergeNode in="coloredBlur" /><feMergeNode in="SourceGraphic" /></feMerge>
              </filter>
           </defs>
@@ -312,10 +344,32 @@ const CircuitVisualizer: React.FC<Props> = ({
             
             return (
               <g key={conn.id}>
-                  {isSimulating && visualizationMode === 'current' && isFlowing && (
-                     <path d={pathD} stroke={color} strokeWidth={width} fill="none" strokeLinecap="round" strokeDasharray={`${width*2},${width*3}`} className="animate-flow" style={{ animationDuration: `${animSpeed}s`, filter: 'url(#glow)' }} />
+                  {/* Base Trace for visibility */}
+                  <path d={pathD} stroke={theme === 'dark' ? '#334155' : '#cbd5e1'} strokeWidth={width} fill="none" strokeLinecap="round" />
+                  
+                  {/* Active Simulation Layer */}
+                  {isSimulating && (
+                      <>
+                        {visualizationMode === 'voltage' ? (
+                            // Voltage Gradient
+                            <path d={pathD} stroke={color} strokeWidth={width} fill="none" strokeLinecap="round" style={{ transition: 'stroke 0.3s ease' }} />
+                        ) : (
+                            // Current Flow Animation
+                            isFlowing && (
+                                <path 
+                                    d={pathD} 
+                                    stroke={color} 
+                                    strokeWidth={width} 
+                                    fill="none" 
+                                    strokeLinecap="round" 
+                                    strokeDasharray="12 12" 
+                                    className="animate-flow" 
+                                    style={{ animationDuration: `${animSpeed}s`, filter: 'url(#glow)' }} 
+                                />
+                            )
+                        )}
+                      </>
                   )}
-                  <path d={pathD} stroke={color} strokeWidth={width} fill="none" strokeLinecap="round" strokeOpacity={isSimulating && visualizationMode === 'current' && isFlowing ? 0.3 : 1} style={{ transition: 'stroke 0.3s ease, stroke-width 0.3s ease' }} />
               </g>
             );
           })}
