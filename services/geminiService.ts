@@ -21,7 +21,7 @@ export const generateCircuitDesign = async (prompt: string): Promise<CircuitData
       The JSON structure must be valid and adhere to this schema:
       {
         "nodes": [
-          { "id": "string", "type": "source" | "resistor" | "capacitor" | "inductor" | "led" | "transistor" | "transistor_npn" | "transistor_pnp" | "ic" | "ground" | "switch" | "gate_and" | "gate_or" | "gate_not" | "gate_xor" | "d_flip_flop" | "seven_segment" | "amplifier_half_duplex" | "amplifier_full_duplex", "label": "string", "x": number, "y": number, "value": "string" (optional) }
+          { "id": "string", "type": "source" | "resistor" | "capacitor" | "inductor" | "led" | "transistor" | "transistor_npn" | "transistor_pnp" | "ic" | "ground" | "switch" | "gate_and" | "gate_or" | "gate_not" | "gate_xor" | "d_flip_flop" | "seven_segment" | "amplifier_half_duplex" | "amplifier_full_duplex" | "esp32" | "oled_display" | "servo" | "relay" | "bench_psu" | "scope_probe" | "func_gen" | "lcd_16x2" | "neopixel" | "logic_probe" | "bme280" | "ina219", "label": "string", "x": number, "y": number, "value": "string" (optional) }
         ],
         "connections": [
           { "id": "string", "sourceId": "string", "targetId": "string" }
@@ -60,7 +60,11 @@ export const generateCircuitDesign = async (prompt: string): Promise<CircuitData
                       'ic', 'ground', 'switch', 
                       'gate_and', 'gate_or', 'gate_not', 'gate_xor', 
                       'd_flip_flop', 'seven_segment',
-                      'amplifier_half_duplex', 'amplifier_full_duplex'
+                      'amplifier_half_duplex', 'amplifier_full_duplex',
+                      'esp32', 'oled_display', 'servo', 'relay', 
+                      'bench_psu', 'scope_probe', 'func_gen', 
+                      'lcd_16x2', 'neopixel', 'logic_probe', 
+                      'bme280', 'ina219'
                     ] 
                   },
                   label: { type: Type.STRING },

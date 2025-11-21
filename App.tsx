@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useContext, createContext } from 'react';
 import { HashRouter, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
 import { CircuitData, SimulationResult } from './types';
@@ -322,6 +323,7 @@ const Editor = ({ data, onUpdate, onOpenGuide }: { data: CircuitData, onUpdate: 
                   simulationResult={simulationResult}
                   onUpdate={onUpdate}
                   theme={theme}
+                  visualizationMode="voltage"
                   collaborators={collaborators}
                   onCursorMove={sendCursorMove}
               />
